@@ -5,7 +5,20 @@
     },
     "class_type": "LoadImage",
     "_meta": {
-      "title": "Load Image 1"
+      "title": "Загрузить изображение"
+    }
+  },
+  "3": {
+    "inputs": {
+      "filename_prefix": "Flux2_Klein_1Image_Detailed_Upscaled",
+      "images": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Сохранить изображение"
     }
   },
   "2:61": {
@@ -14,7 +27,7 @@
     },
     "class_type": "KSamplerSelect",
     "_meta": {
-      "title": "KSampler Select"
+      "title": "Выбор KSampler"
     }
   },
   "2:70": {
@@ -24,7 +37,7 @@
     },
     "class_type": "UNETLoader",
     "_meta": {
-      "title": "Load Diffusion Model"
+      "title": "Загрузить модель диффузии"
     }
   },
   "2:71": {
@@ -35,7 +48,7 @@
     },
     "class_type": "CLIPLoader",
     "_meta": {
-      "title": "Load CLIP"
+      "title": "Загрузить CLIP"
     }
   },
   "2:72": {
@@ -44,50 +57,7 @@
     },
     "class_type": "VAELoader",
     "_meta": {
-      "title": "Load VAE"
-    }
-  },
-  "1:80": {
-    "inputs": {
-      "upscale_method": "nearest-exact",
-      "megapixels": 1,
-      "resolution_steps": 1,
-      "image": [
-        "1",
-        0
-      ]
-    },
-    "class_type": "ImageScaleToTotalPixels",
-    "_meta": {
-      "title": "Scale Image 1"
-    }
-  },
-  "1:122": {
-    "inputs": {
-      "pixels": [
-        "1:80",
-        0
-      ],
-      "vae": [
-        "2:72",
-        0
-      ]
-    },
-    "class_type": "VAEEncode",
-    "_meta": {
-      "title": "VAE Encode Image 1"
-    }
-  },
-  "2:99": {
-    "inputs": {
-      "image": [
-        "1:80",
-        0
-      ]
-    },
-    "class_type": "GetImageSize",
-    "_meta": {
-      "title": "Get Image Size"
+      "title": "Загрузить VAE"
     }
   },
   "2:66": {
@@ -104,12 +74,27 @@
     },
     "class_type": "EmptyFlux2LatentImage",
     "_meta": {
-      "title": "Empty Flux2 Latent"
+      "title": "Пустой Flux 2 latent"
+    }
+  },
+  "2:80": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "megapixels": 1.5,
+      "resolution_steps": 4,
+      "image": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "Масштабировать изображение до общего количества пикселей"
     }
   },
   "2:62": {
     "inputs": {
-      "steps": 4,
+      "steps": 8,
       "width": [
         "2:99",
         0
@@ -126,7 +111,7 @@
   },
   "2:74": {
     "inputs": {
-      "text": "Create a clean premium commercial product image from the uploaded reference image. Preserve the product shape, label, logo, colors, and main identity as much as possible. Improve lighting, background, composition, realism, sharpness, and advertising quality. Avoid blurry results, distorted product details, wrong text, wrong logo, duplicated objects, watermarks, messy composition, and low quality.",
+      "text": "Create a premium ultra-clean commercial product image using the uploaded product photo as the main reference. Preserve the bottle shape, label, logo, colors, and brand identity as accurately as possible. Enhance lighting, reflections, splash effects, composition, and background for a polished advertising look. Keep the product sharp, centered, realistic, high-detail, clean, and blur-free. Avoid changing the core product design.",
       "clip": [
         "2:71",
         0
@@ -134,7 +119,7 @@
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "Positive Prompt"
+      "title": "CLIP Text Encode (Positive Prompt)"
     }
   },
   "2:82": {
@@ -146,69 +131,67 @@
     },
     "class_type": "ConditioningZeroOut",
     "_meta": {
-      "title": "Zero Out Conditioning"
+      "title": "Обнуление кондиционирования"
     }
   },
-  "1:121": {
+  "2:121": {
     "inputs": {
       "conditioning": [
         "2:82",
         0
       ],
       "latent": [
-        "1:122",
+        "2:122",
         0
       ]
     },
     "class_type": "ReferenceLatent",
     "_meta": {
-      "title": "Negative Reference Latent 1"
+      "title": "Эталонный латент"
     }
   },
-  "1:123": {
+  "2:99": {
+    "inputs": {
+      "image": [
+        "2:80",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Получить размер изображения"
+    }
+  },
+  "2:123": {
     "inputs": {
       "conditioning": [
         "2:74",
         0
       ],
       "latent": [
-        "1:122",
+        "2:122",
         0
       ]
     },
     "class_type": "ReferenceLatent",
     "_meta": {
-      "title": "Positive Reference Latent 1"
+      "title": "Эталонный латент"
     }
   },
-  "2:73": {
+  "2:122": {
     "inputs": {
-      "noise_seed": 706746523326117
-    },
-    "class_type": "RandomNoise",
-    "_meta": {
-      "title": "Random Noise"
-    }
-  },
-  "2:63": {
-    "inputs": {
-      "cfg": 1,
-      "model": [
-        "2:70",
+      "pixels": [
+        "2:80",
         0
       ],
-      "positive": [
-        "1:123",
-        0
-      ],
-      "negative": [
-        "1:121",
+      "vae": [
+        "2:72",
         0
       ]
     },
-    "class_type": "CFGGuider",
+    "class_type": "VAEEncode",
     "_meta": {
-      "title": "CFG Guider"
+      "title": "Кодировать VAE"
     }
   },
   "2:64": {
@@ -236,7 +219,7 @@
     },
     "class_type": "SamplerCustomAdvanced",
     "_meta": {
-      "title": "Custom Sampler Advanced"
+      "title": "Пользовательский сэмплер (Расширенный)"
     }
   },
   "2:65": {
@@ -252,20 +235,62 @@
     },
     "class_type": "VAEDecode",
     "_meta": {
-      "title": "VAE Decode"
+      "title": "Декодировать VAE"
     }
   },
-  "99": {
+  "2:73": {
     "inputs": {
-      "filename_prefix": "Flux2_Klein_1Image_NoUpscaler",
-      "images": [
+      "noise_seed": 0
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "Случайный шум"
+    }
+  },
+  "2:63": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "2:70",
+        0
+      ],
+      "positive": [
+        "2:123",
+        0
+      ],
+      "negative": [
+        "2:121",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFG Гид"
+    }
+  },
+  "4": {
+    "inputs": {
+      "model_name": "4x-UltraSharp.pth"
+    },
+    "class_type": "UpscaleModelLoader",
+    "_meta": {
+      "title": "Загрузить модель апскейла"
+    }
+  },
+  "5": {
+    "inputs": {
+      "upscale_model": [
+        "4",
+        0
+      ],
+      "image": [
         "2:65",
         0
       ]
     },
-    "class_type": "SaveImage",
+    "class_type": "ImageUpscaleWithModel",
     "_meta": {
-      "title": "Save Image"
+      "title": "Апскейл изображения моделью"
     }
   }
 }

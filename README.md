@@ -92,3 +92,17 @@ workflows_api/       exported API workflow files go here
 uploads/             uploaded images
 results/             generated results
 ```
+
+## UI Upgrade Included
+
+This ZIP includes the upgraded dashboard:
+- scale preset buttons
+- image upload previews
+- progress bar and ETA
+- result image preview modal
+- download result button
+- delete job
+- clean finished history / clear all history
+- 1–5 ComfyUI API workflow files in `workflows_api/`
+
+Important: `.env` is not included for safety. Keep your existing local `.env` file or create it from `.env.example`.

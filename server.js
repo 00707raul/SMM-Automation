@@ -6,7 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { listJobs, getJob, createJob, updateJob, takeNextJob } = require('./src/store');
+const { listJobs, getJob, createJob, updateJob, deleteJob, clearJobs, takeNextJob } = require('./src/store');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -40,6 +40,23 @@ function baseUrl(req) {
   return APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
 }
 
+function removeIfExists(filepath) {
+  try {
+    if (filepath && fs.existsSync(filepath)) fs.unlinkSync(filepath);
+  } catch {}
+}
+
+function cleanupJobFiles(job) {
+  if (!job) return;
+  for (const img of job.images || []) {
+    removeIfExists(path.join(UPLOAD_DIR, img.filename));
+  }
+  if (job.result?.url) {
+    const filename = path.basename(job.result.url);
+    removeIfExists(path.join(RESULT_DIR, filename));
+  }
+}
+
 function requireWorker(req, res, next) {
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!token || token !== WORKER_TOKEN) return res.status(401).json({ error: 'Unauthorized worker token' });
@@ -64,6 +81,7 @@ app.post('/api/jobs', upload.array('images', MAX_IMAGES), (req, res) => {
     description: req.body.description || '',
     tags: req.body.tags || '',
     platform: req.body.platform || 'instagram',
+    scaleLabel: req.body.scaleLabel || '',
     width: Number(req.body.width || 1080),
     height: Number(req.body.height || 1350),
     imageCount: files.length,
@@ -73,7 +91,8 @@ app.post('/api/jobs', upload.array('images', MAX_IMAGES), (req, res) => {
       url: `${baseUrl(req)}/uploads/${encodeURIComponent(f.filename)}`
     })),
     result: null,
-    error: null
+    error: null,
+    progress: 'Queued'
   };
 
   createJob(job);
@@ -86,6 +105,29 @@ app.get('/api/jobs/:id', (req, res) => {
   const job = getJob(req.params.id);
   if (!job) return res.status(404).json({ error: 'Job not found' });
   res.json(job);
+});
+
+app.delete('/api/jobs/:id', (req, res) => {
+  const job = getJob(req.params.id);
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  cleanupJobFiles(job);
+  deleteJob(req.params.id);
+  res.json({ ok: true });
+});
+
+app.post('/api/jobs/clear', (req, res) => {
+  const mode = req.body.mode || 'finished';
+  const jobs = listJobs();
+  for (const job of jobs) {
+    const matches =
+      mode === 'all' ||
+      (mode === 'completed' && job.status === 'completed') ||
+      (mode === 'failed' && job.status === 'failed') ||
+      (mode === 'finished' && ['completed', 'failed'].includes(job.status));
+    if (matches) cleanupJobFiles(job);
+  }
+  const removed = clearJobs(mode);
+  res.json({ ok: true, removed });
 });
 
 app.post('/api/worker/next', requireWorker, (req, res) => {
@@ -119,6 +161,8 @@ app.post('/api/worker/jobs/:id/result', requireWorker, (req, res) => {
 
   const updated = updateJob(job.id, {
     status: 'completed',
+    progress: 'Completed',
+    completedAt: new Date().toISOString(),
     result: { url: resultUrl, completedAt: new Date().toISOString() },
     error: null
   });
@@ -128,6 +172,7 @@ app.post('/api/worker/jobs/:id/result', requireWorker, (req, res) => {
 app.post('/api/worker/jobs/:id/fail', requireWorker, (req, res) => {
   const updated = updateJob(req.params.id, {
     status: 'failed',
+    progress: 'Failed',
     error: req.body.error || 'Generation failed'
   });
   if (!updated) return res.status(404).json({ error: 'Job not found' });

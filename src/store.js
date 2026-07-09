@@ -47,6 +47,31 @@ function updateJob(id, patch) {
   return data.jobs[idx];
 }
 
+function deleteJob(id) {
+  const data = readStore();
+  const before = data.jobs.length;
+  data.jobs = data.jobs.filter(j => j.id !== id);
+  if (data.jobs.length === before) return false;
+  writeStore(data);
+  return true;
+}
+
+function clearJobs(mode = 'all') {
+  const data = readStore();
+  const before = data.jobs.length;
+  if (mode === 'completed') {
+    data.jobs = data.jobs.filter(j => j.status !== 'completed');
+  } else if (mode === 'finished') {
+    data.jobs = data.jobs.filter(j => !['completed', 'failed'].includes(j.status));
+  } else if (mode === 'failed') {
+    data.jobs = data.jobs.filter(j => j.status !== 'failed');
+  } else {
+    data.jobs = [];
+  }
+  writeStore(data);
+  return before - data.jobs.length;
+}
+
 function takeNextJob() {
   const data = readStore();
   const job = data.jobs.find(j => j.status === 'queued');
@@ -58,4 +83,4 @@ function takeNextJob() {
   return job;
 }
 
-module.exports = { listJobs, getJob, createJob, updateJob, takeNextJob };
+module.exports = { listJobs, getJob, createJob, updateJob, deleteJob, clearJobs, takeNextJob };

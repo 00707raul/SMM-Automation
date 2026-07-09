@@ -3,73 +3,462 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SMM Automation Starter</title>
+  <title>SMM AI Engine</title>
   <style>
-    body { font-family: Arial, sans-serif; background:#0f172a; color:#e5e7eb; margin:0; padding:32px; }
-    .card { background:#111827; border:1px solid #374151; border-radius:16px; padding:20px; margin-bottom:20px; max-width:950px; }
-    input, textarea, select, button { width:100%; padding:12px; margin:8px 0; border-radius:10px; border:1px solid #374151; background:#030712; color:#e5e7eb; box-sizing:border-box; }
-    button { background:#22c55e; color:#052e16; font-weight:700; cursor:pointer; }
-    .job { border-top:1px solid #374151; padding:14px 0; }
-    img { max-width:220px; border-radius:12px; display:block; margin-top:10px; }
-    .muted { color:#9ca3af; font-size:14px; }
+    :root{
+      --bg:#09111f; --panel:#101826; --panel-2:#151f31; --line:#273247; --text:#eef3fb; --muted:#90a0bb;
+      --green:#4ade80; --green2:#22c55e; --yellow:#fbbf24; --red:#f87171; --blue:#60a5fa; --violet:#8b5cf6;
+      --shadow:0 18px 50px rgba(0,0,0,.28); --radius:20px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(180deg,#0a1220 0%,#0b1322 100%);color:var(--text)}
+    .container{max-width:1380px;margin:0 auto;padding:28px 18px 60px}
+    .hero{display:flex;gap:18px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px}
+    .hero-card{background:linear-gradient(180deg,rgba(18,27,43,.98),rgba(16,24,38,.96));border:1px solid var(--line);box-shadow:var(--shadow);border-radius:24px;padding:22px}
+    .hero-main{flex:1 1 760px}
+    .hero-side{width:320px;max-width:100%}
+    h1{margin:0 0 10px;font-size:34px;line-height:1.08}
+    .sub{color:var(--muted);margin:0}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+    .stat{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:16px;padding:14px}
+    .stat .n{font-size:28px;font-weight:800}
+    .stat .l{font-size:12px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.08em}
+
+    .layout{display:grid;grid-template-columns:420px 1fr;gap:18px;align-items:start}
+    .card{background:linear-gradient(180deg,rgba(18,27,43,.96),rgba(16,24,38,.94));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .card .head{padding:18px 18px 0}
+    .card .body{padding:18px}
+    .card h2{margin:0;font-size:20px}
+    .muted{color:var(--muted)}
+    .tiny{font-size:12px;color:var(--muted)}
+
+    .form-grid{display:grid;gap:14px}
+    label{font-size:13px;font-weight:700;color:#dce7f8;display:block;margin-bottom:7px}
+    input,textarea,select{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:#0b1320;color:var(--text);outline:none}
+    textarea{resize:vertical;min-height:120px}
+    .upload{border:1.5px dashed #35507b;background:#0a1220;border-radius:18px;padding:16px;text-align:center}
+    .upload input{background:transparent;border:none;padding:0;margin-top:8px}
+    .chips{display:flex;flex-wrap:wrap;gap:10px}
+    .chip{border:1px solid var(--line);background:#0b1320;color:var(--text);padding:10px 12px;border-radius:999px;cursor:pointer;font-size:13px;transition:.2s}
+    .chip.active{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.45);color:#d9ffe7}
+    .chip small{display:block;color:var(--muted)}
+    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    button{border:none;border-radius:14px;padding:12px 16px;font-weight:800;cursor:pointer;transition:.2s}
+    .primary{background:linear-gradient(180deg,var(--green),var(--green2));color:#06270f}
+    .secondary{background:#111b2c;color:#e6edf7;border:1px solid var(--line)}
+    .danger{background:#301318;color:#ffd7d7;border:1px solid #5b252e}
+    button:hover{transform:translateY(-1px)}
+    button:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+    .toolbar{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+    .toolbar .left,.toolbar .right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .pill{padding:8px 12px;border-radius:999px;background:#0b1320;border:1px solid var(--line);font-size:13px;color:var(--muted)}
+
+    .jobs{display:grid;gap:14px}
+    .job{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:18px;padding:16px;display:grid;gap:14px}
+    .job-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+    .status{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+    .status .dot{width:9px;height:9px;border-radius:999px;background:currentColor}
+    .status.queued{background:rgba(251,191,36,.12);color:var(--yellow)}
+    .status.processing{background:rgba(96,165,250,.12);color:var(--blue)}
+    .status.completed{background:rgba(74,222,128,.12);color:var(--green)}
+    .status.failed{background:rgba(248,113,113,.12);color:var(--red)}
+
+    .progress-wrap{display:grid;gap:8px}
+    .progress-bar{height:10px;border-radius:999px;background:#0a1220;border:1px solid #22304a;overflow:hidden}
+    .progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#60a5fa,#4ade80);width:0%;transition:width .6s ease}
+    .job-meta{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+    .job-grid{display:grid;grid-template-columns:1fr 260px;gap:14px}
+    .thumbs{display:flex;gap:10px;flex-wrap:wrap}
+    .thumbs img,.result-card img{width:88px;height:88px;object-fit:cover;border-radius:14px;border:1px solid var(--line);cursor:pointer;background:#0a1220}
+    .result-card{background:#0b1320;border:1px solid var(--line);border-radius:16px;padding:12px}
+    .result-card img{width:100%;height:auto;max-height:280px}
+    .result-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .full-text{white-space:pre-wrap;line-height:1.55;color:#dbe7f6}
+    .truncate{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .error{color:#fecaca;background:rgba(248,113,113,.08);padding:10px 12px;border-radius:12px;border:1px solid rgba(248,113,113,.25)}
+    .empty{padding:28px;border:1px dashed var(--line);border-radius:18px;text-align:center;color:var(--muted);background:#0a1220}
+
+    .modal{position:fixed;inset:0;background:rgba(4,8,16,.78);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+    .modal.open{display:flex}
+    .modal-card{max-width:min(92vw,1200px);max-height:92vh;background:#0b1320;border:1px solid var(--line);border-radius:20px;padding:12px;position:relative}
+    .modal-card img{max-width:100%;max-height:82vh;border-radius:14px;display:block}
+    .close{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.08);color:white;border:1px solid var(--line);width:42px;height:42px;border-radius:999px}
+
+    .preview-list{display:flex;gap:10px;overflow:auto;padding-top:10px}
+    .preview-item{min-width:70px;width:70px;height:70px;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:#0a1220}
+
+    @media (max-width: 1100px){
+      .layout{grid-template-columns:1fr}
+      .stats{grid-template-columns:repeat(2,1fr)}
+      .job-grid{grid-template-columns:1fr}
+    }
+    @media (max-width: 640px){
+      body{font-size:14px}
+      .container{padding:16px 12px 50px}
+      .stats{grid-template-columns:1fr 1fr}
+      .row-2{grid-template-columns:1fr}
+      h1{font-size:28px}
+    }
   </style>
 </head>
 <body>
-  <h1>SMM Automation Starter</h1>
-  <p class="muted">Render dashboard + local ComfyUI worker starter.</p>
+  <div class="container">
+    <section class="hero">
+      <div class="hero-card hero-main">
+        <h1>SMM AI Engine</h1>
+        <p class="sub">Create image jobs, monitor progress, preview results, download assets, and keep your generation history clean.</p>
+        <div class="stats" id="stats"></div>
+      </div>
+      <div class="hero-card hero-side">
+        <div class="tiny">Quick Tips</div>
+        <ul class="muted" style="padding-left:18px;line-height:1.7;margin:10px 0 0">
+          <li>Upload 1–5 images.</li>
+          <li>Use a clear prompt for better results.</li>
+          <li>Choose a preset scale with one click.</li>
+          <li>Click any image to open it full screen.</li>
+          <li>Download the final result after generation.</li>
+        </ul>
+      </div>
+    </section>
 
-  <div class="card">
-    <h2>Create image job</h2>
-    <form id="jobForm">
-      <label>Images, 1–5</label>
-      <input type="file" name="images" multiple accept="image/*" required />
-      <label>Prompt</label>
-      <textarea name="prompt" rows="5">Create a premium commercial social media advertising image. Keep product identity clean and professional.</textarea>
-      <label>Platform</label>
-      <select name="platform">
-        <option value="instagram">Instagram</option>
-        <option value="tiktok">TikTok</option>
-      </select>
-      <label>Width</label>
-      <input name="width" value="1080" />
-      <label>Height</label>
-      <input name="height" value="1350" />
-      <button>Create Job</button>
-    </form>
+    <section class="layout">
+      <div class="card">
+        <div class="head"><h2>Create New Job</h2></div>
+        <div class="body">
+          <form id="jobForm" class="form-grid">
+            <div>
+              <label>Upload reference images (1–5)</label>
+              <div class="upload">
+                <div class="muted">Drag concept/product images here or choose files.</div>
+                <input id="imagesInput" type="file" name="images" multiple accept="image/*" required />
+                <div id="uploadInfo" class="tiny">Max 5 images · jpg/png/webp</div>
+                <div id="previews" class="preview-list"></div>
+              </div>
+            </div>
+
+            <div>
+              <label>Prompt</label>
+              <textarea name="prompt" rows="6">Create a premium commercial social media advertising image. Keep product identity clean and professional.</textarea>
+            </div>
+
+            <div class="row-2">
+              <div>
+                <label>Platform</label>
+                <select name="platform">
+                  <option value="instagram">Instagram</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="facebook">Facebook</option>
+                  <option value="general">General</option>
+                </select>
+              </div>
+              <div>
+                <label>Scale preset</label>
+                <input id="scaleLabel" name="scaleLabel" placeholder="Chosen automatically" readonly />
+              </div>
+            </div>
+
+            <div>
+              <div class="chips" id="scaleChips"></div>
+            </div>
+
+            <div class="row-2">
+              <div>
+                <label>Width</label>
+                <input name="width" id="widthInput" type="number" min="256" step="1" value="1080" />
+              </div>
+              <div>
+                <label>Height</label>
+                <input name="height" id="heightInput" type="number" min="256" step="1" value="1350" />
+              </div>
+            </div>
+
+            <div class="actions">
+              <button class="primary" id="createBtn" type="submit">Create Job</button>
+              <button class="secondary" type="button" id="resetBtn">Reset</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="body">
+          <div class="toolbar">
+            <div class="left">
+              <div class="pill" id="jobCountPill">0 jobs</div>
+              <div class="pill" id="avgTimePill">Avg time: --</div>
+            </div>
+            <div class="right">
+              <button class="secondary" id="refreshBtn">Refresh</button>
+              <button class="secondary" id="clearFinishedBtn">Clean Finished</button>
+              <button class="danger" id="clearAllBtn">Clear All History</button>
+            </div>
+          </div>
+          <div class="jobs" id="jobs"></div>
+        </div>
+      </div>
+    </section>
   </div>
 
-  <div class="card">
-    <h2>Jobs</h2>
-    <button onclick="loadJobs()">Refresh</button>
-    <div id="jobs"></div>
+  <div class="modal" id="imageModal">
+    <div class="modal-card">
+      <button class="close" id="closeModal">✕</button>
+      <img id="modalImage" alt="Preview" />
+    </div>
   </div>
 
   <script>
     const form = document.getElementById('jobForm');
-    form.addEventListener('submit', async (e) => {
+    const jobsEl = document.getElementById('jobs');
+    const previewsEl = document.getElementById('previews');
+    const imageInput = document.getElementById('imagesInput');
+    const uploadInfo = document.getElementById('uploadInfo');
+    const createBtn = document.getElementById('createBtn');
+    const widthInput = document.getElementById('widthInput');
+    const heightInput = document.getElementById('heightInput');
+    const scaleLabel = document.getElementById('scaleLabel');
+    const statsEl = document.getElementById('stats');
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+
+    const SCALE_PRESETS = [
+      { key:'ig-portrait', label:'Instagram Portrait', size:'1080 × 1350', width:1080, height:1350 },
+      { key:'ig-square', label:'Instagram Square', size:'1080 × 1080', width:1080, height:1080 },
+      { key:'story', label:'Story / TikTok', size:'1080 × 1920', width:1080, height:1920 },
+      { key:'landscape', label:'Landscape', size:'1920 × 1080', width:1920, height:1080 },
+      { key:'poster', label:'Poster', size:'1414 × 2000', width:1414, height:2000 },
+      { key:'custom', label:'Custom', size:'Manual', width:null, height:null }
+    ];
+
+    let jobs = [];
+    let activeScale = 'ig-portrait';
+
+    function fmtDuration(ms){
+      if (!ms || ms < 0) return '--';
+      const sec = Math.round(ms / 1000);
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}m ${String(s).padStart(2,'0')}s`;
+    }
+
+    function averageDurationMs(list){
+      const done = list.filter(j => j.status === 'completed' && j.workerStartedAt && (j.completedAt || j.result?.completedAt));
+      if (!done.length) return 120000;
+      const vals = done.map(j => new Date(j.completedAt || j.result.completedAt) - new Date(j.workerStartedAt)).filter(v => v > 0);
+      return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0) / vals.length) : 120000;
+    }
+
+    function computeProgress(job, avgMs){
+      if (job.status === 'completed') return 100;
+      if (job.status === 'failed') return 100;
+      if (job.status === 'queued') {
+        const queuedAhead = jobs.filter(j => j.status === 'queued' && new Date(j.createdAt) < new Date(job.createdAt)).length;
+        return Math.min(15 + queuedAhead * 4, 35);
+      }
+      if (job.status === 'processing') {
+        const start = new Date(job.workerStartedAt || job.updatedAt || job.createdAt).getTime();
+        const elapsed = Date.now() - start;
+        return Math.max(10, Math.min(95, Math.round((elapsed / avgMs) * 100)));
+      }
+      return 0;
+    }
+
+    function getEta(job, avgMs){
+      if (job.status === 'completed') return `Done in ${fmtDuration(new Date(job.completedAt || job.result?.completedAt) - new Date(job.workerStartedAt || job.createdAt))}`;
+      if (job.status === 'failed') return 'Generation failed';
+      if (job.status === 'queued') {
+        const queuedAhead = jobs.filter(j => ['queued','processing'].includes(j.status) && new Date(j.createdAt) < new Date(job.createdAt)).length;
+        return `ETA ~ ${fmtDuration((queuedAhead + 1) * avgMs)}`;
+      }
+      const start = new Date(job.workerStartedAt || job.createdAt).getTime();
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(0, avgMs - elapsed);
+      return `Elapsed ${fmtDuration(elapsed)} · ETA ${fmtDuration(remaining)}`;
+    }
+
+    function setScale(key){
+      activeScale = key;
+      const preset = SCALE_PRESETS.find(x => x.key === key) || SCALE_PRESETS[0];
+      document.querySelectorAll('.chip').forEach(el => el.classList.toggle('active', el.dataset.key === key));
+      scaleLabel.value = `${preset.label} (${preset.size})`;
+      if (preset.width && preset.height) {
+        widthInput.value = preset.width;
+        heightInput.value = preset.height;
+      }
+    }
+
+    function renderScaleChips(){
+      const box = document.getElementById('scaleChips');
+      box.innerHTML = SCALE_PRESETS.map(p => `
+        <button type="button" class="chip ${p.key===activeScale?'active':''}" data-key="${p.key}">
+          ${p.label}<small>${p.size}</small>
+        </button>
+      `).join('');
+      box.querySelectorAll('.chip').forEach(btn => btn.addEventListener('click', ()=> setScale(btn.dataset.key)));
+      setScale(activeScale);
+    }
+
+    function renderPreviews(){
+      const files = [...imageInput.files].slice(0,5);
+      uploadInfo.textContent = files.length ? `${files.length} image(s) selected` : 'Max 5 images · jpg/png/webp';
+      previewsEl.innerHTML = '';
+      files.forEach(file => {
+        const img = document.createElement('img');
+        img.className = 'preview-item';
+        img.alt = file.name;
+        img.src = URL.createObjectURL(file);
+        img.addEventListener('click', ()=> openModal(img.src));
+        previewsEl.appendChild(img);
+      });
+    }
+
+    function openModal(src){
+      modalImage.src = src;
+      modal.classList.add('open');
+    }
+
+    function closeModal(){ modal.classList.remove('open'); modalImage.src = ''; }
+
+    async function createJob(e){
       e.preventDefault();
+      if (!imageInput.files.length) return alert('Please upload at least 1 image.');
+      createBtn.disabled = true;
+      createBtn.textContent = 'Creating...';
       const fd = new FormData(form);
       const res = await fetch('/api/jobs', { method:'POST', body:fd });
-      if (!res.ok) alert(await res.text());
+      if (!res.ok) {
+        createBtn.disabled = false;
+        createBtn.textContent = 'Create Job';
+        return alert(await res.text());
+      }
       form.reset();
+      activeScale = 'ig-portrait';
+      renderScaleChips();
+      renderPreviews();
+      createBtn.disabled = false;
+      createBtn.textContent = 'Create Job';
       await loadJobs();
-    });
+    }
 
-    async function loadJobs() {
+    async function deleteJob(id){
+      if (!confirm('Delete this job and its history?')) return;
+      await fetch(`/api/jobs/${id}`, { method:'DELETE' });
+      await loadJobs();
+    }
+
+    async function clearHistory(mode){
+      const msg = mode === 'all' ? 'Delete all jobs and history?' : 'Delete finished jobs from history?';
+      if (!confirm(msg)) return;
+      await fetch('/api/jobs/clear', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ mode })
+      });
+      await loadJobs();
+    }
+
+    function renderStats(){
+      const total = jobs.length;
+      const queued = jobs.filter(j => j.status === 'queued').length;
+      const processing = jobs.filter(j => j.status === 'processing').length;
+      const completed = jobs.filter(j => j.status === 'completed').length;
+      const avg = averageDurationMs(jobs);
+      statsEl.innerHTML = [
+        {n: total, l:'Total Jobs'},
+        {n: queued, l:'Queued'},
+        {n: processing, l:'Processing'},
+        {n: completed, l:'Completed'}
+      ].map(s => `<div class="stat"><div class="n">${s.n}</div><div class="l">${s.l}</div></div>`).join('');
+      document.getElementById('jobCountPill').textContent = `${total} job${total===1?'':'s'}`;
+      document.getElementById('avgTimePill').textContent = `Avg time: ${fmtDuration(avg)}`;
+    }
+
+    function jobCard(job){
+      const avgMs = averageDurationMs(jobs);
+      const progress = computeProgress(job, avgMs);
+      const eta = getEta(job, avgMs);
+      const imageThumbs = (job.images || []).map(img => `<img src="${img.url}" alt="${img.originalName}" data-preview="${img.url}" />`).join('');
+      const statusClass = job.status || 'queued';
+      return `
+        <div class="job">
+          <div class="job-head">
+            <div>
+              <div class="status ${statusClass}"><span class="dot"></span>${job.status}</div>
+              <div style="margin-top:10px;font-weight:800">${job.scaleLabel || `${job.width} × ${job.height}`}</div>
+              <div class="job-meta" style="margin-top:8px">
+                <span>${job.imageCount} image(s)</span>
+                <span>${job.platform || 'general'}</span>
+                <span>${new Date(job.createdAt).toLocaleString()}</span>
+                <span>ID: ${job.id.slice(0, 8)}…</span>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="secondary" onclick="deleteJob('${job.id}')">Delete</button>
+            </div>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="tiny">${job.progress || 'Waiting'} · ${eta}</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+          </div>
+
+          <div class="job-grid">
+            <div>
+              <div class="full-text truncate">${escapeHtml(job.prompt || '')}</div>
+              ${job.error ? `<div class="error" style="margin-top:12px">${escapeHtml(job.error)}</div>` : ''}
+              <div style="margin-top:12px">
+                <div class="tiny" style="margin-bottom:8px">Reference images</div>
+                <div class="thumbs">${imageThumbs || '<span class="muted">No images</span>'}</div>
+              </div>
+            </div>
+            <div>
+              <div class="result-card">
+                <div class="tiny" style="margin-bottom:8px">Generated result</div>
+                ${job.result?.url ? `<img src="${job.result.url}" alt="Result" data-preview="${job.result.url}" />
+                <div class="result-actions">
+                  <a class="secondary" href="${job.result.url}" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;padding:12px 14px">Open</a>
+                  <a class="primary" href="${job.result.url}" download style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;padding:12px 14px">Download</a>
+                </div>` : `<div class="empty">No result yet</div>`}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    async function loadJobs(){
       const res = await fetch('/api/jobs');
       const data = await res.json();
-      document.getElementById('jobs').innerHTML = data.jobs.map(job => `
-        <div class="job">
-          <b>${job.status.toUpperCase()}</b> <span class="muted">${job.id}</span><br/>
-          <span class="muted">${job.imageCount} image(s) · ${new Date(job.createdAt).toLocaleString()}</span>
-          <p>${job.prompt}</p>
-          ${job.error ? `<p style="color:#f87171">${job.error}</p>` : ''}
-          ${job.result?.url ? `<a href="${job.result.url}" target="_blank">Open result</a><img src="${job.result.url}"/>` : ''}
-        </div>
-      `).join('');
+      jobs = data.jobs || [];
+      renderStats();
+      jobsEl.innerHTML = jobs.length ? jobs.map(jobCard).join('') : `<div class="empty">No jobs yet. Create your first generation.</div>`;
+      document.querySelectorAll('[data-preview]').forEach(el => el.addEventListener('click', ()=> openModal(el.dataset.preview)));
     }
+
+    form.addEventListener('submit', createJob);
+    imageInput.addEventListener('change', renderPreviews);
+    document.getElementById('resetBtn').addEventListener('click', ()=> { form.reset(); activeScale='ig-portrait'; renderScaleChips(); renderPreviews(); });
+    document.getElementById('refreshBtn').addEventListener('click', loadJobs);
+    document.getElementById('clearFinishedBtn').addEventListener('click', ()=> clearHistory('finished'));
+    document.getElementById('clearAllBtn').addEventListener('click', ()=> clearHistory('all'));
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e)=> { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', (e)=> { if (e.key === 'Escape') closeModal(); });
+
+    renderScaleChips();
+    renderPreviews();
     loadJobs();
-    setInterval(loadJobs, 5000);
+    setInterval(loadJobs, 4000);
   </script>
 </body>
 </html>
