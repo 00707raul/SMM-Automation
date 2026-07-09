@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: smm-automation-starter
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WORKER_TOKEN
+        generateValue: true
+      - key: MAX_IMAGES
+        value: "5"

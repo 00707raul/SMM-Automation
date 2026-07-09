@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SMM Automation Starter</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#0f172a; color:#e5e7eb; margin:0; padding:32px; }
+    .card { background:#111827; border:1px solid #374151; border-radius:16px; padding:20px; margin-bottom:20px; max-width:950px; }
+    input, textarea, select, button { width:100%; padding:12px; margin:8px 0; border-radius:10px; border:1px solid #374151; background:#030712; color:#e5e7eb; box-sizing:border-box; }
+    button { background:#22c55e; color:#052e16; font-weight:700; cursor:pointer; }
+    .job { border-top:1px solid #374151; padding:14px 0; }
+    img { max-width:220px; border-radius:12px; display:block; margin-top:10px; }
+    .muted { color:#9ca3af; font-size:14px; }
+  </style>
+</head>
+<body>
+  <h1>SMM Automation Starter</h1>
+  <p class="muted">Render dashboard + local ComfyUI worker starter.</p>
+
+  <div class="card">
+    <h2>Create image job</h2>
+    <form id="jobForm">
+      <label>Images, 1–5</label>
+      <input type="file" name="images" multiple accept="image/*" required />
+      <label>Prompt</label>
+      <textarea name="prompt" rows="5">Create a premium commercial social media advertising image. Keep product identity clean and professional.</textarea>
+      <label>Platform</label>
+      <select name="platform">
+        <option value="instagram">Instagram</option>
+        <option value="tiktok">TikTok</option>
+      </select>
+      <label>Width</label>
+      <input name="width" value="1080" />
+      <label>Height</label>
+      <input name="height" value="1350" />
+      <button>Create Job</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Jobs</h2>
+    <button onclick="loadJobs()">Refresh</button>
+    <div id="jobs"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('jobForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const res = await fetch('/api/jobs', { method:'POST', body:fd });
+      if (!res.ok) alert(await res.text());
+      form.reset();
+      await loadJobs();
+    });
+
+    async function loadJobs() {
+      const res = await fetch('/api/jobs');
+      const data = await res.json();
+      document.getElementById('jobs').innerHTML = data.jobs.map(job => `
+        <div class="job">
+          <b>${job.status.toUpperCase()}</b> <span class="muted">${job.id}</span><br/>
+          <span class="muted">${job.imageCount} image(s) · ${new Date(job.createdAt).toLocaleString()}</span>
+          <p>${job.prompt}</p>
+          ${job.error ? `<p style="color:#f87171">${job.error}</p>` : ''}
+          ${job.result?.url ? `<a href="${job.result.url}" target="_blank">Open result</a><img src="${job.result.url}"/>` : ''}
+        </div>
+      `).join('');
+    }
+    loadJobs();
+    setInterval(loadJobs, 5000);
+  </script>
+</body>
+</html>
