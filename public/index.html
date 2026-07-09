@@ -89,6 +89,87 @@
     .preview-list{display:flex;gap:10px;overflow:auto;padding-top:10px}
     .preview-item{min-width:70px;width:70px;height:70px;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:#0a1220}
 
+
+    .ratio-box{
+      background:rgba(9,17,32,.86);
+      border:1px solid rgba(148,163,184,.22);
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:0 18px 40px rgba(0,0,0,.25);
+    }
+    .ratio-option{
+      width:100%;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 16px;
+      margin:0;
+      cursor:pointer;
+      border-bottom:1px solid rgba(148,163,184,.22);
+      font-weight:800;
+      text-align:left;
+    }
+    .ratio-option:last-child{border-bottom:0}
+    .ratio-option .ratio-left{display:flex;align-items:center;gap:12px}
+    .ratio-option .ratio-name{font-size:14px}
+    .ratio-option .ratio-sub{font-size:11px;color:var(--muted);font-weight:700;margin-top:2px}
+    .ratio-option .ratio-check{
+      width:22px;
+      height:22px;
+      border-radius:6px;
+      border:2px solid rgba(203,213,225,.65);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#08111f;
+      font-size:14px;
+      line-height:1;
+    }
+    .ratio-option.active{
+      background:rgba(96,165,250,.14);
+      color:#ffffff;
+    }
+    .ratio-option.active .ratio-check{
+      background:#f8fafc;
+      border-color:#f8fafc;
+    }
+    .ratio-icon{
+      width:26px;
+      height:26px;
+      border-radius:9px;
+      border:1px solid rgba(148,163,184,.35);
+      display:grid;
+      place-items:center;
+      color:#b8c6dc;
+      font-size:14px;
+      background:rgba(255,255,255,.04);
+    }
+    .ratio-shape{
+      border:2px solid currentColor;
+      border-radius:5px;
+      display:inline-block;
+      opacity:.9;
+    }
+    .shape-original{width:17px;height:17px;position:relative}
+    .shape-original:before{
+      content:"";
+      position:absolute;
+      width:8px;height:8px;
+      border:2px solid currentColor;
+      border-radius:4px;
+      left:-8px;top:8px;
+      opacity:.7;
+      background:rgba(9,17,32,.9);
+    }
+    .shape-1-1{width:18px;height:18px}
+    .shape-4-5{width:16px;height:20px}
+    .shape-9-16{width:13px;height:22px}
+    .shape-16-9{width:22px;height:13px}
+
     @media (max-width: 1100px){
       .layout{grid-template-columns:1fr}
       .stats{grid-template-columns:repeat(2,1fr)}
@@ -160,7 +241,9 @@
             </div>
 
             <div>
-              <div class="chips" id="scaleChips"></div>
+              <label>Image scale / aspect ratio</label>
+              <div class="ratio-box" id="scaleChips"></div>
+              <div class="tiny" style="margin-top:8px">Choose Original to use the first uploaded image size, or select a fixed social media ratio.</div>
             </div>
 
             <div class="row-2">
@@ -223,16 +306,15 @@
     const modalImage = document.getElementById('modalImage');
 
     const SCALE_PRESETS = [
-      { key:'ig-portrait', label:'Instagram Portrait', size:'1080 × 1350', width:1080, height:1350 },
-      { key:'ig-square', label:'Instagram Square', size:'1080 × 1080', width:1080, height:1080 },
-      { key:'story', label:'Story / TikTok', size:'1080 × 1920', width:1080, height:1920 },
-      { key:'landscape', label:'Landscape', size:'1920 × 1080', width:1920, height:1080 },
-      { key:'poster', label:'Poster', size:'1414 × 2000', width:1414, height:2000 },
-      { key:'custom', label:'Custom', size:'Manual', width:null, height:null }
+      { key:'original', label:'Original', size:'Use first image size', width:null, height:null, shape:'original' },
+      { key:'1-1', label:'1:1', size:'Square · 1080 × 1080', width:1080, height:1080, shape:'1-1' },
+      { key:'4-5', label:'4:5', size:'Instagram portrait · 1080 × 1350', width:1080, height:1350, shape:'4-5' },
+      { key:'9-16', label:'9:16', size:'Story / TikTok · 1080 × 1920', width:1080, height:1920, shape:'9-16' },
+      { key:'16-9', label:'16:9', size:'Landscape · 1920 × 1080', width:1920, height:1080, shape:'16-9' }
     ];
 
     let jobs = [];
-    let activeScale = 'ig-portrait';
+    let activeScale = '4-5';
 
     function fmtDuration(ms){
       if (!ms || ms < 0) return '--';
@@ -279,23 +361,53 @@
 
     function setScale(key){
       activeScale = key;
-      const preset = SCALE_PRESETS.find(x => x.key === key) || SCALE_PRESETS[0];
-      document.querySelectorAll('.chip').forEach(el => el.classList.toggle('active', el.dataset.key === key));
+      const preset = SCALE_PRESETS.find(x => x.key === key) || SCALE_PRESETS[2];
+      document.querySelectorAll('.ratio-option').forEach(el => el.classList.toggle('active', el.dataset.key === key));
       scaleLabel.value = `${preset.label} (${preset.size})`;
+
+      if (preset.key === 'original') {
+        setOriginalSizeFromFirstImage();
+        return;
+      }
+
       if (preset.width && preset.height) {
         widthInput.value = preset.width;
         heightInput.value = preset.height;
       }
     }
 
+    function setOriginalSizeFromFirstImage(){
+      const file = imageInput.files && imageInput.files[0];
+      if (!file) {
+        widthInput.value = 1080;
+        heightInput.value = 1350;
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        widthInput.value = img.naturalWidth || 1080;
+        heightInput.value = img.naturalHeight || 1350;
+        scaleLabel.value = `Original (${widthInput.value} × ${heightInput.value})`;
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(file);
+    }
+
     function renderScaleChips(){
       const box = document.getElementById('scaleChips');
       box.innerHTML = SCALE_PRESETS.map(p => `
-        <button type="button" class="chip ${p.key===activeScale?'active':''}" data-key="${p.key}">
-          ${p.label}<small>${p.size}</small>
+        <button type="button" class="ratio-option ${p.key===activeScale?'active':''}" data-key="${p.key}">
+          <span class="ratio-left">
+            <span class="ratio-icon"><span class="ratio-shape shape-${p.shape}"></span></span>
+            <span>
+              <span class="ratio-name">${p.label}</span>
+              <span class="ratio-sub">${p.size}</span>
+            </span>
+          </span>
+          <span class="ratio-check">${p.key===activeScale?'✓':''}</span>
         </button>
       `).join('');
-      box.querySelectorAll('.chip').forEach(btn => btn.addEventListener('click', ()=> setScale(btn.dataset.key)));
+      box.querySelectorAll('.ratio-option').forEach(btn => btn.addEventListener('click', ()=> setScale(btn.dataset.key)));
       setScale(activeScale);
     }
 
@@ -311,6 +423,7 @@
         img.addEventListener('click', ()=> openModal(img.src));
         previewsEl.appendChild(img);
       });
+      if (activeScale === 'original') setOriginalSizeFromFirstImage();
     }
 
     function openModal(src){
@@ -333,7 +446,7 @@
         return alert(await res.text());
       }
       form.reset();
-      activeScale = 'ig-portrait';
+      activeScale = '4-5';
       renderScaleChips();
       renderPreviews();
       createBtn.disabled = false;
@@ -447,7 +560,7 @@
 
     form.addEventListener('submit', createJob);
     imageInput.addEventListener('change', renderPreviews);
-    document.getElementById('resetBtn').addEventListener('click', ()=> { form.reset(); activeScale='ig-portrait'; renderScaleChips(); renderPreviews(); });
+    document.getElementById('resetBtn').addEventListener('click', ()=> { form.reset(); activeScale='4-5'; renderScaleChips(); renderPreviews(); });
     document.getElementById('refreshBtn').addEventListener('click', loadJobs);
     document.getElementById('clearFinishedBtn').addEventListener('click', ()=> clearHistory('finished'));
     document.getElementById('clearAllBtn').addEventListener('click', ()=> clearHistory('all'));
