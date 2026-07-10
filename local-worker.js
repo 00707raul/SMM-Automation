@@ -267,6 +267,14 @@ function patchWorkflowApi(promptApi, job, comfyFilenames) {
       node.inputs.seed = Math.floor(Math.random() * 9007199254740991);
     }
 
+    // Z-Image Base expects qwen_3_4b.safetensors.
+    // qwen_3_8b_fp8mixed.safetensors causes the RuntimeError:
+    // expected normalized_shape=[2560], but got hidden size 12288.
+    if ((job.modelKey || '').startsWith('z_image') && node.class_type === 'CLIPLoader') {
+      node.inputs.clip_name = 'qwen_3_4b.safetensors';
+      node.inputs.type = 'lumina2';
+    }
+
     if (node.class_type === 'SaveImage' && typeof node.inputs.filename_prefix === 'string') {
       node.inputs.filename_prefix = `smm_${job.id}`;
     }

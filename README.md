@@ -147,3 +147,14 @@ This version keeps the original Flux2 workflow files and exposes them in the web
 - Flux2 Klein 4B — 5 Images
 
 The matching API workflows are in `workflows_api/flux2_1_image_api.json` through `workflows_api/flux2_5_image_api.json`. The visual workflow copies are still in `workflows/`.
+
+
+## Z-Image model compatibility fix
+
+For both Z-Image Base Text-to-Image and Z-Image Base 2-Image Img2Img, the project uses:
+
+- `models/diffusion_models/z_image_bf16.safetensors`
+- `models/text_encoders/qwen_3_4b.safetensors`
+- `models/vae/ae.safetensors`
+
+Do not use `qwen_3_8b_fp8mixed.safetensors` with these Z-Image workflows. It can fail in KSampler with a hidden-size error like `expected normalized_shape=[2560] ... got ... 12288`.
