@@ -1,0 +1,220 @@
+{
+  "2": {
+    "inputs": {
+      "unet_name": "z_image_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "3": {
+    "inputs": {
+      "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+      "type": "lumina2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "4": {
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "5": {
+    "inputs": {
+      "text": "The person is a young-adult white woman with short, red hair. She has fair skin, rosy cheeks, and full lips, and she appears to be smiling slightly. She is wearing a green dress. The dress has a low neckline and a fitted silhouette. She is at a park.",
+      "clip": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "6": {
+    "inputs": {
+      "conditioning": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "Обнуление кондиционирования"
+    }
+  },
+  "7": {
+    "inputs": {
+      "shift": 3,
+      "model": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "Выборка модели AuraFlow"
+    }
+  },
+  "8": {
+    "inputs": {
+      "seed": 861542288410617,
+      "steps": 9,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 0.78,
+      "model": [
+        "7",
+        0
+      ],
+      "positive": [
+        "5",
+        0
+      ],
+      "negative": [
+        "6",
+        0
+      ],
+      "latent_image": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "9": {
+    "inputs": {
+      "samples": [
+        "8",
+        0
+      ],
+      "vae": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "10": {
+    "inputs": {
+      "filename_prefix": "z-image-base-img2img-2input",
+      "images": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "11": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "Пустой SD3LatentImage"
+    }
+  },
+  "12": {
+    "inputs": {
+      "image": "image.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "13": {
+    "inputs": {
+      "upscale_method": "area",
+      "largest_size": 1024,
+      "image": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToMaxDimension",
+    "_meta": {
+      "title": "Масштабирование до максимального размера"
+    }
+  },
+  "14": {
+    "inputs": {
+      "pixels": [
+        "18",
+        0
+      ],
+      "vae": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "16": {
+    "inputs": {
+      "image": "image_2.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image 2 (Detail Reference)"
+    }
+  },
+  "17": {
+    "inputs": {
+      "upscale_method": "area",
+      "largest_size": 1024,
+      "image": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToMaxDimension",
+    "_meta": {
+      "title": "ImageScaleToMaxDimension (Image 2)"
+    }
+  },
+  "18": {
+    "inputs": {
+      "blend_factor": 0.2,
+      "blend_mode": "normal",
+      "image1": [
+        "13",
+        0
+      ],
+      "image2": [
+        "17",
+        0
+      ]
+    },
+    "class_type": "ImageBlend",
+    "_meta": {
+      "title": "Image Blend (Base + Detail)"
+    }
+  }
+}

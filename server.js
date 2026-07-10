@@ -39,6 +39,87 @@ const MAX_IMAGES = Number(process.env.MAX_IMAGES || 5);
 const WORKER_TOKEN = process.env.WORKER_TOKEN || 'dev-token';
 const APP_BASE_URL = (process.env.APP_BASE_URL || '').replace(/\/$/, '');
 
+const MODEL_CONFIGS = {
+  // Individual Flux2 Klein workflows restored as separate selectable models.
+  flux2_klein_1: {
+    key: 'flux2_klein_1',
+    label: 'Flux2 Klein 4B — 1 Image',
+    mode: 'image',
+    minImages: 1,
+    maxImages: 1,
+    description: 'Uses Workflows1-5/Flux2_Klein_4B_1Image_OfficialBased_Workflow.json and flux2_1_image_api.json.'
+  },
+  flux2_klein_2: {
+    key: 'flux2_klein_2',
+    label: 'Flux2 Klein 4B — 2 Images',
+    mode: 'image',
+    minImages: 2,
+    maxImages: 2,
+    description: 'Uses Workflows1-5/Flux2_Klein_4B_2Image_OfficialBased_Workflow.json and flux2_2_image_api.json.'
+  },
+  flux2_klein_3: {
+    key: 'flux2_klein_3',
+    label: 'Flux2 Klein 4B — 3 Images',
+    mode: 'image',
+    minImages: 3,
+    maxImages: 3,
+    description: 'Uses Workflows1-5/Flux2_Klein_4B_3Image_OfficialBased_Workflow.json and flux2_3_image_api.json.'
+  },
+  flux2_klein_4: {
+    key: 'flux2_klein_4',
+    label: 'Flux2 Klein 4B — 4 Images',
+    mode: 'image',
+    minImages: 4,
+    maxImages: 4,
+    description: 'Uses Workflows1-5/Flux2_Klein_4B_4Image_OfficialBased_Workflow.json and flux2_4_image_api.json.'
+  },
+  flux2_klein_5: {
+    key: 'flux2_klein_5',
+    label: 'Flux2 Klein 4B — 5 Images',
+    mode: 'image',
+    minImages: 5,
+    maxImages: 5,
+    description: 'Uses Workflows1-5/Flux2_Klein_4B_5Image_OfficialBased_Workflow.json and flux2_5_image_api.json.'
+  },
+
+  // Legacy automatic Flux option kept for backward compatibility with old queued jobs.
+  flux2_klein: {
+    key: 'flux2_klein',
+    label: 'Flux2 Klein 4B — Auto 1–5 Images',
+    mode: 'image',
+    minImages: 1,
+    maxImages: 5,
+    description: 'Automatically chooses the Flux2 API workflow by uploaded image count.'
+  },
+
+  z_image_base_img2img_2: {
+    key: 'z_image_base_img2img_2',
+    label: 'Z-Image Base 2-Image Img2Img',
+    mode: 'img2img',
+    minImages: 2,
+    maxImages: 2,
+    description: 'Image 1 is the base/starter image. Image 2 gives details/reference.'
+  },
+  z_image_base_t2i: {
+    key: 'z_image_base_t2i',
+    label: 'Z-Image Base Text-to-Image',
+    mode: 'text2image',
+    minImages: 0,
+    maxImages: 0,
+    description: 'Prompt-only generation with positive and negative prompt.'
+  }
+};
+
+function getModelConfig(modelKey) {
+  return MODEL_CONFIGS[modelKey] || MODEL_CONFIGS.flux2_klein_1;
+}
+
+function publicModels() {
+  return Object.values(MODEL_CONFIGS).map(({ key, label, mode, minImages, maxImages, description }) => ({
+    key, label, mode, minImages, maxImages, description
+  }));
+}
+
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
 const RESULT_DIR = process.env.RESULT_DIR || path.join(process.cwd(), 'results');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -89,11 +170,23 @@ function requireWorker(req, res, next) {
 }
 
 app.get('/health', (_, res) => res.json({ ok: true, service: 'smm-automation-starter' }));
+app.get('/api/models', (_, res) => res.json({ models: publicModels() }));
 
 app.post('/api/jobs', upload.array('images', MAX_IMAGES), (req, res) => {
   const files = req.files || [];
-  if (!files.length) return res.status(400).json({ error: 'Upload at least 1 image' });
+  const modelKey = req.body.modelKey || 'flux2_klein_1';
+  const model = getModelConfig(modelKey);
+
+  if (files.length < model.minImages) {
+    return res.status(400).json({ error: `${model.label} needs at least ${model.minImages} image(s)` });
+  }
+  if (files.length > model.maxImages) {
+    return res.status(400).json({ error: `${model.label} allows maximum ${model.maxImages} image(s)` });
+  }
   if (files.length > MAX_IMAGES) return res.status(400).json({ error: `Maximum ${MAX_IMAGES} images allowed` });
+
+  const width = Math.max(256, Math.round(Number(req.body.width || 1080)));
+  const height = Math.max(256, Math.round(Number(req.body.height || 1350)));
 
   const id = crypto.randomUUID();
   const job = {
@@ -102,13 +195,18 @@ app.post('/api/jobs', upload.array('images', MAX_IMAGES), (req, res) => {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     prompt: req.body.prompt || 'Create a premium social media advertising image.',
+    negativePrompt: req.body.negativePrompt || '',
     title: req.body.title || '',
     description: req.body.description || '',
     tags: req.body.tags || '',
     platform: req.body.platform || 'instagram',
+    modelKey: model.key,
+    modelLabel: model.label,
+    modelMode: model.mode,
     scaleLabel: req.body.scaleLabel || '',
-    width: Number(req.body.width || 1080),
-    height: Number(req.body.height || 1350),
+    width,
+    height,
+    blendFactor: Number(req.body.blendFactor || 0.2),
     imageCount: files.length,
     images: files.map(f => ({
       originalName: f.originalname,

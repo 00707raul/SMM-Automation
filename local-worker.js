@@ -29,6 +29,13 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+let sharp = null;
+try {
+  sharp = require('sharp');
+} catch {
+  // Sharp is needed only for real image jobs. Dry-run can still work.
+}
+
 const SERVER_URL = (process.env.SERVER_URL || process.env.APP_BASE_URL || 'http://localhost:10000').replace(/\/$/, '');
 const WORKER_TOKEN = process.env.WORKER_TOKEN || 'dev-token';
 const COMFY_URL = (process.env.COMFY_URL || process.env.COMFYUI_URL || 'http://127.0.0.1:8188').replace(/\/$/, '');
@@ -36,8 +43,72 @@ const COMFY_INPUT_DIR = process.env.COMFY_INPUT_DIR || path.join(process.cwd(), 
 const WORKFLOWS_API_DIR = process.env.WORKFLOWS_API_DIR || path.join(process.cwd(), 'workflows_api');
 const POLL_MS = Number(process.env.WORKER_POLL_MS || 5000);
 const DRY_RUN = String(process.env.DRY_RUN || 'true').toLowerCase() === 'true';
+const IMAGE_FIT_MODE = String(process.env.IMAGE_FIT_MODE || 'cover').toLowerCase(); // cover = no squeeze, centre crop. contain = no crop, transparent padding.
 
 fs.mkdirSync(COMFY_INPUT_DIR, { recursive: true });
+
+const MODEL_WORKFLOWS = {
+  // Individual Flux2 Klein API workflows restored.
+  flux2_klein_1: {
+    label: 'Flux2 Klein 4B — 1 Image',
+    mode: 'image',
+    workflowFile: () => 'flux2_1_image_api.json',
+    minImages: 1,
+    maxImages: 1
+  },
+  flux2_klein_2: {
+    label: 'Flux2 Klein 4B — 2 Images',
+    mode: 'image',
+    workflowFile: () => 'flux2_2_image_api.json',
+    minImages: 2,
+    maxImages: 2
+  },
+  flux2_klein_3: {
+    label: 'Flux2 Klein 4B — 3 Images',
+    mode: 'image',
+    workflowFile: () => 'flux2_3_image_api.json',
+    minImages: 3,
+    maxImages: 3
+  },
+  flux2_klein_4: {
+    label: 'Flux2 Klein 4B — 4 Images',
+    mode: 'image',
+    workflowFile: () => 'flux2_4_image_api.json',
+    minImages: 4,
+    maxImages: 4
+  },
+  flux2_klein_5: {
+    label: 'Flux2 Klein 4B — 5 Images',
+    mode: 'image',
+    workflowFile: () => 'flux2_5_image_api.json',
+    minImages: 5,
+    maxImages: 5
+  },
+
+  // Legacy automatic Flux option kept for old jobs.
+  flux2_klein: {
+    label: 'Flux2 Klein 4B — Auto 1–5 Images',
+    mode: 'image',
+    workflowFile: job => `flux2_${Math.max(1, Math.min(5, Number(job.imageCount || 1)))}_image_api.json`,
+    minImages: 1,
+    maxImages: 5
+  },
+
+  z_image_base_img2img_2: {
+    label: 'Z-Image Base 2-Image Img2Img',
+    mode: 'img2img',
+    workflowFile: () => 'z_image_base_img2img_2image_api.json',
+    minImages: 2,
+    maxImages: 2
+  },
+  z_image_base_t2i: {
+    label: 'Z-Image Base Text-to-Image',
+    mode: 'text2image',
+    workflowFile: () => 'z_image_base_text2image_api.json',
+    minImages: 0,
+    maxImages: 0
+  }
+};
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -75,15 +146,18 @@ function placeholderPngBase64(job) {
   <rect width="100%" height="100%" fill="#111827"/>
   <text x="50" y="120" fill="#ffffff" font-size="48" font-family="Arial">SMM Automation Test</text>
   <text x="50" y="210" fill="#a7f3d0" font-size="32" font-family="Arial">Job: ${job.id}</text>
-  <text x="50" y="280" fill="#e5e7eb" font-size="28" font-family="Arial">Images: ${job.imageCount}</text>
-  <text x="50" y="350" fill="#e5e7eb" font-size="28" font-family="Arial">Size: ${job.width} × ${job.height}</text>
+  <text x="50" y="300" fill="#93c5fd" font-size="28" font-family="Arial">${job.modelLabel || job.modelKey || 'model'} · ${job.width}×${job.height}</text>
 </svg>`;
   return Buffer.from(svg).toString('base64');
 }
 
-function selectWorkflowApi(count) {
-  const safeCount = Math.max(1, Math.min(5, Number(count || 1)));
-  return path.join(WORKFLOWS_API_DIR, `flux2_${safeCount}_image_api.json`);
+function getModelConfig(job) {
+  return MODEL_WORKFLOWS[job.modelKey] || MODEL_WORKFLOWS.flux2_klein_1;
+}
+
+function selectWorkflowApi(job) {
+  const model = getModelConfig(job);
+  return path.join(WORKFLOWS_API_DIR, model.workflowFile(job));
 }
 
 function sortLoadImageIds(ids) {
@@ -95,10 +169,62 @@ function sortLoadImageIds(ids) {
   });
 }
 
+function targetSize(job) {
+  return {
+    width: Math.max(256, Math.round(Number(job.width || 1080))),
+    height: Math.max(256, Math.round(Number(job.height || 1350)))
+  };
+}
+
+async function resizeForComfy(inputPath, outputPath, job) {
+  if (!sharp) {
+    throw new Error('Missing dependency: sharp. Run npm.cmd install in D:\\SMM-Automation, then start the worker again.');
+  }
+
+  const { width, height } = targetSize(job);
+  const fit = IMAGE_FIT_MODE === 'contain' ? 'contain' : 'cover';
+
+  // This is the scaler fix: every uploaded image becomes the exact selected canvas size
+  // without stretching/squeezing. cover crops from centre; contain pads transparently.
+  await sharp(inputPath)
+    .rotate()
+    .resize({
+      width,
+      height,
+      fit,
+      position: 'center',
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
+    })
+    .png()
+    .toFile(outputPath);
+}
+
+async function prepareInputImages(job) {
+  const comfyFilenames = [];
+  const images = job.images || [];
+  for (let index = 0; index < images.length; index++) {
+    const img = images[index];
+    const originalExt = path.extname(img.filename) || '.png';
+    const rawName = `${job.id}-${index + 1}-raw-${crypto.randomUUID()}${originalExt}`;
+    const processedName = `${job.id}-${index + 1}-fit-${crypto.randomUUID()}.png`;
+    const rawPath = path.join(COMFY_INPUT_DIR, rawName);
+    const processedPath = path.join(COMFY_INPUT_DIR, processedName);
+
+    await downloadToFile(img.url, rawPath);
+    await resizeForComfy(rawPath, processedPath, job);
+    comfyFilenames.push(processedName);
+
+    try { fs.unlinkSync(rawPath); } catch {}
+  }
+  return comfyFilenames;
+}
+
 function patchWorkflowApi(promptApi, job, comfyFilenames) {
   const prompt = JSON.parse(JSON.stringify(promptApi));
-  const width = Math.max(256, Math.round(Number(job.width || 1080)));
-  const height = Math.max(256, Math.round(Number(job.height || 1350)));
+  const { width, height } = targetSize(job);
+  const largestSize = Math.max(width, height);
+  const negativePrompt = job.negativePrompt || 'bad anatomy, deformed body, distorted face, extra fingers, extra arms, extra legs, missing fingers, fused fingers, malformed hands, blurry, low quality, low detail, text, watermark, cropped, duplicate body parts';
+  const blendFactor = Math.max(0, Math.min(1, Number(job.blendFactor || 0.2)));
 
   const loadImageNodeIds = sortLoadImageIds(Object.keys(prompt).filter(id => prompt[id]?.class_type === 'LoadImage'));
   loadImageNodeIds.forEach((id, index) => {
@@ -109,21 +235,36 @@ function patchWorkflowApi(promptApi, job, comfyFilenames) {
     const node = prompt[id];
     if (!node.inputs) continue;
 
-    // Main prompt field.
-    if (typeof node.inputs.text === 'string') {
+    const title = String(node._meta?.title || '');
+
+    if (node.class_type === 'CLIPTextEncode' && typeof node.inputs.text === 'string') {
+      if (/negative/i.test(title)) {
+        node.inputs.text = negativePrompt;
+      } else {
+        node.inputs.text = job.prompt;
+      }
+    } else if (typeof node.inputs.text === 'string') {
       node.inputs.text = job.prompt;
     }
 
-    // Force exact selected size. This fixes the old issue where workflows used source image size.
-    if (Object.prototype.hasOwnProperty.call(node.inputs, 'width')) {
-      node.inputs.width = width;
-    }
-    if (Object.prototype.hasOwnProperty.call(node.inputs, 'height')) {
-      node.inputs.height = height;
+    // Exact output canvas size. For img2img, this also updates helper latent nodes if present.
+    if (Object.prototype.hasOwnProperty.call(node.inputs, 'width')) node.inputs.width = width;
+    if (Object.prototype.hasOwnProperty.call(node.inputs, 'height')) node.inputs.height = height;
+
+    // Prevent different-sized inputs from being reduced to 1024 when user selected 1080×1920, 1920×1080, etc.
+    if (Object.prototype.hasOwnProperty.call(node.inputs, 'largest_size')) node.inputs.largest_size = largestSize;
+
+    // Two-image Z workflow blend control.
+    if (node.class_type === 'ImageBlend' && Object.prototype.hasOwnProperty.call(node.inputs, 'blend_factor')) {
+      node.inputs.blend_factor = blendFactor;
     }
 
     if (node.class_type === 'RandomNoise' && typeof node.inputs.noise_seed === 'number') {
       node.inputs.noise_seed = Math.floor(Math.random() * 9007199254740991);
+    }
+
+    if (node.class_type === 'KSampler' && typeof node.inputs.seed === 'number') {
+      node.inputs.seed = Math.floor(Math.random() * 9007199254740991);
     }
 
     if (node.class_type === 'SaveImage' && typeof node.inputs.filename_prefix === 'string') {
@@ -134,27 +275,22 @@ function patchWorkflowApi(promptApi, job, comfyFilenames) {
 }
 
 async function runComfy(job) {
+  const model = getModelConfig(job);
   await safeApi(`/api/worker/jobs/${job.id}/status`, {
     method: 'POST',
-    body: JSON.stringify({ status: 'processing', progress: 'Downloading input images' })
+    body: JSON.stringify({ status: 'processing', progress: job.imageCount ? 'Downloading and fitting input images' : 'Preparing text-to-image workflow' })
   });
 
-  const comfyFilenames = [];
-  for (const img of job.images) {
-    const ext = path.extname(img.filename) || '.png';
-    const comfyName = `${job.id}-${crypto.randomUUID()}${ext}`;
-    await downloadToFile(img.url, path.join(COMFY_INPUT_DIR, comfyName));
-    comfyFilenames.push(comfyName);
-  }
+  const comfyFilenames = await prepareInputImages(job);
 
-  const workflowPath = selectWorkflowApi(job.imageCount);
+  const workflowPath = selectWorkflowApi(job);
   if (!fs.existsSync(workflowPath)) {
     throw new Error(`Missing API workflow: ${workflowPath}`);
   }
 
   await safeApi(`/api/worker/jobs/${job.id}/status`, {
     method: 'POST',
-    body: JSON.stringify({ status: 'processing', progress: `Sending ${job.width}×${job.height} workflow to ComfyUI` })
+    body: JSON.stringify({ status: 'processing', progress: `Sending ${model.label} · ${job.width}×${job.height} to ComfyUI` })
   });
 
   const apiWorkflow = JSON.parse(fs.readFileSync(workflowPath, 'utf8'));
@@ -212,7 +348,7 @@ async function runComfy(job) {
 }
 
 async function processJob(job) {
-  console.log('Processing job', job.id);
+  console.log('Processing job', job.id, job.modelKey || 'flux2_klein');
   try {
     await api(`/api/worker/jobs/${job.id}/status`, {
       method: 'POST',
@@ -244,7 +380,7 @@ async function processJob(job) {
 
 async function main() {
   console.log('Local worker started');
-  console.log({ SERVER_URL, COMFY_URL, WORKFLOWS_API_DIR, DRY_RUN });
+  console.log({ SERVER_URL, COMFY_URL, WORKFLOWS_API_DIR, DRY_RUN, IMAGE_FIT_MODE, hasSharp: Boolean(sharp) });
 
   while (true) {
     try {

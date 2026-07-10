@@ -16,3 +16,18 @@ In ComfyUI:
 - `flux2_5_image_api.json`
 
 The local worker will choose the correct file based on uploaded image count.
+
+
+Additional Z-Image API workflows included:
+
+- `z_image_base_text2image_api.json`
+  - text-to-image
+  - positive prompt + negative prompt
+  - no input images
+
+- `z_image_base_img2img_2image_api.json`
+  - 2-image image-to-image
+  - image 1 = starter/base
+  - image 2 = detail/reference
+
+The worker chooses the correct workflow from the model selector in the website UI.

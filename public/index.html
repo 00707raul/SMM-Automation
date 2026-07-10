@@ -195,7 +195,8 @@
       <div class="hero-card hero-side">
         <div class="tiny">Quick Tips</div>
         <ul class="muted" style="padding-left:18px;line-height:1.7;margin:10px 0 0">
-          <li>Upload 1–5 images.</li>
+          <li>Choose the AI model before creating a job.</li>
+          <li>Flux2 Klein is available as separate 1, 2, 3, 4, and 5 image workflows; Z-Image img2img uses exactly 2 images; text-to-image uses no images.</li>
           <li>Use a clear prompt for better results.</li>
           <li>Choose a preset scale with one click.</li>
           <li>Click any image to open it full screen.</li>
@@ -210,7 +211,21 @@
         <div class="body">
           <form id="jobForm" class="form-grid">
             <div>
-              <label>Upload reference images (1–5)</label>
+              <label>AI model / workflow</label>
+              <select id="modelKey" name="modelKey">
+                <option value="flux2_klein_1">Flux2 Klein 4B — 1 Image</option>
+                <option value="flux2_klein_2">Flux2 Klein 4B — 2 Images</option>
+                <option value="flux2_klein_3">Flux2 Klein 4B — 3 Images</option>
+                <option value="flux2_klein_4">Flux2 Klein 4B — 4 Images</option>
+                <option value="flux2_klein_5">Flux2 Klein 4B — 5 Images</option>
+                <option value="z_image_base_img2img_2">Z-Image Base Img2Img — 2 images</option>
+                <option value="z_image_base_t2i">Z-Image Base Text-to-Image — no image</option>
+              </select>
+              <div id="modelHint" class="tiny" style="margin-top:8px"></div>
+            </div>
+
+            <div>
+              <label id="uploadLabel">Upload reference images</label>
               <div class="upload">
                 <div class="muted">Drag concept/product images here or choose files.</div>
                 <input id="imagesInput" type="file" name="images" multiple accept="image/*" required />
@@ -223,6 +238,14 @@
               <label>Prompt</label>
               <textarea name="prompt" rows="6">Create a premium commercial social media advertising image. Keep product identity clean and professional.</textarea>
             </div>
+
+            <div id="negativePromptWrap" style="display:none">
+              <label>Negative prompt</label>
+              <textarea name="negativePrompt" rows="4">bad anatomy, deformed body, distorted face, extra fingers, extra arms, extra legs, missing fingers, fused fingers, malformed hands, blurry, low quality, low detail, text, watermark, cropped, duplicate body parts</textarea>
+              <div class="tiny" style="margin-top:8px">Used by Z-Image Base Text-to-Image.</div>
+            </div>
+
+            <input type="hidden" name="blendFactor" id="blendFactor" value="0.2" />
 
             <div class="row-2">
               <div>
@@ -304,6 +327,69 @@
     const statsEl = document.getElementById('stats');
     const modal = document.getElementById('imageModal');
     const modalImage = document.getElementById('modalImage');
+    const modelSelect = document.getElementById('modelKey');
+    const modelHint = document.getElementById('modelHint');
+    const uploadLabel = document.getElementById('uploadLabel');
+    const negativePromptWrap = document.getElementById('negativePromptWrap');
+
+    const MODEL_PRESETS = {
+      flux2_klein_1: {
+        key: 'flux2_klein_1',
+        label: 'Flux2 Klein 4B — 1 Image',
+        hint: 'Restored Flux2 workflow: upload exactly 1 image.',
+        minImages: 1,
+        maxImages: 1,
+        usesNegative: false
+      },
+      flux2_klein_2: {
+        key: 'flux2_klein_2',
+        label: 'Flux2 Klein 4B — 2 Images',
+        hint: 'Restored Flux2 workflow: upload exactly 2 images.',
+        minImages: 2,
+        maxImages: 2,
+        usesNegative: false
+      },
+      flux2_klein_3: {
+        key: 'flux2_klein_3',
+        label: 'Flux2 Klein 4B — 3 Images',
+        hint: 'Restored Flux2 workflow: upload exactly 3 images.',
+        minImages: 3,
+        maxImages: 3,
+        usesNegative: false
+      },
+      flux2_klein_4: {
+        key: 'flux2_klein_4',
+        label: 'Flux2 Klein 4B — 4 Images',
+        hint: 'Restored Flux2 workflow: upload exactly 4 images.',
+        minImages: 4,
+        maxImages: 4,
+        usesNegative: false
+      },
+      flux2_klein_5: {
+        key: 'flux2_klein_5',
+        label: 'Flux2 Klein 4B — 5 Images',
+        hint: 'Restored Flux2 workflow: upload exactly 5 images.',
+        minImages: 5,
+        maxImages: 5,
+        usesNegative: false
+      },
+      z_image_base_img2img_2: {
+        key: 'z_image_base_img2img_2',
+        label: 'Z-Image Base 2-Image Img2Img',
+        hint: 'Upload exactly 2 images: first = starter/base, second = detail/reference.',
+        minImages: 2,
+        maxImages: 2,
+        usesNegative: false
+      },
+      z_image_base_t2i: {
+        key: 'z_image_base_t2i',
+        label: 'Z-Image Base Text-to-Image',
+        hint: 'Prompt-only generation. No uploaded image is needed. Negative prompt is enabled.',
+        minImages: 0,
+        maxImages: 0,
+        usesNegative: true
+      }
+    };
 
     const SCALE_PRESETS = [
       { key:'original', label:'Original', size:'Use first image size', width:null, height:null, shape:'original' },
@@ -315,6 +401,35 @@
 
     let jobs = [];
     let activeScale = '4-5';
+
+    function activeModel(){
+      return MODEL_PRESETS[modelSelect.value] || MODEL_PRESETS.flux2_klein_1;
+    }
+
+    function updateModelUI(){
+      const model = activeModel();
+      modelHint.textContent = model.hint;
+      uploadLabel.textContent = model.maxImages === 0
+        ? 'Upload images'
+        : `Upload reference images (${model.minImages}${model.minImages === model.maxImages ? '' : '–' + model.maxImages})`;
+      if (imageInput.files.length > model.maxImages) imageInput.value = '';
+      imageInput.disabled = model.maxImages === 0;
+      imageInput.required = model.minImages > 0;
+      negativePromptWrap.style.display = model.usesNegative ? 'block' : 'none';
+
+      if (model.maxImages === 0) {
+        uploadInfo.textContent = 'This model uses prompt only · no image upload';
+        previewsEl.innerHTML = '';
+        if (activeScale === 'original') {
+          activeScale = '4-5';
+          renderScaleChips();
+        }
+      } else {
+        uploadInfo.textContent = model.minImages === model.maxImages
+          ? `Required: exactly ${model.maxImages} image(s) · jpg/png/webp`
+          : `Required: ${model.minImages}–${model.maxImages} images · jpg/png/webp`;
+      }
+    }
 
     function fmtDuration(ms){
       if (!ms || ms < 0) return '--';
@@ -412,8 +527,20 @@
     }
 
     function renderPreviews(){
-      const files = [...imageInput.files].slice(0,5);
-      uploadInfo.textContent = files.length ? `${files.length} image(s) selected` : 'Max 5 images · jpg/png/webp';
+      const model = activeModel();
+      const files = [...imageInput.files].slice(0, Math.max(model.maxImages, 0));
+      if (model.maxImages === 0) {
+        uploadInfo.textContent = 'This model uses prompt only · no image upload';
+      } else if (imageInput.files.length) {
+        uploadInfo.textContent = `${imageInput.files.length} image(s) selected`;
+        if (imageInput.files.length < model.minImages || imageInput.files.length > model.maxImages) {
+          uploadInfo.textContent += ` · ${model.label} needs ${model.minImages === model.maxImages ? 'exactly ' + model.maxImages : model.minImages + '–' + model.maxImages} image(s)`;
+        }
+      } else {
+        uploadInfo.textContent = model.minImages === model.maxImages
+          ? `Required: exactly ${model.maxImages} image(s) · jpg/png/webp`
+          : `Required: ${model.minImages}–${model.maxImages} images · jpg/png/webp`;
+      }
       previewsEl.innerHTML = '';
       files.forEach(file => {
         const img = document.createElement('img');
@@ -435,7 +562,12 @@
 
     async function createJob(e){
       e.preventDefault();
-      if (!imageInput.files.length) return alert('Please upload at least 1 image.');
+      const model = activeModel();
+      const count = imageInput.files.length;
+      if (count < model.minImages || count > model.maxImages) {
+        const needed = model.minImages === model.maxImages ? `exactly ${model.maxImages}` : `${model.minImages}–${model.maxImages}`;
+        return alert(`${model.label} needs ${needed} image(s).`);
+      }
       createBtn.disabled = true;
       createBtn.textContent = 'Creating...';
       const fd = new FormData(form);
@@ -447,6 +579,7 @@
       }
       form.reset();
       activeScale = '4-5';
+      updateModelUI();
       renderScaleChips();
       renderPreviews();
       createBtn.disabled = false;
@@ -501,6 +634,7 @@
               <div style="margin-top:10px;font-weight:800">${job.scaleLabel || `${job.width} × ${job.height}`}</div>
               <div class="job-meta" style="margin-top:8px">
                 <span>${job.imageCount} image(s)</span>
+                <span>${job.modelLabel || job.modelKey || 'Flux2 Klein 4B — 1 Image'}</span>
                 <span>${job.platform || 'general'}</span>
                 <span>${new Date(job.createdAt).toLocaleString()}</span>
                 <span>ID: ${job.id.slice(0, 8)}…</span>
@@ -560,7 +694,8 @@
 
     form.addEventListener('submit', createJob);
     imageInput.addEventListener('change', renderPreviews);
-    document.getElementById('resetBtn').addEventListener('click', ()=> { form.reset(); activeScale='4-5'; renderScaleChips(); renderPreviews(); });
+    document.getElementById('resetBtn').addEventListener('click', ()=> { form.reset(); activeScale='4-5'; updateModelUI(); renderScaleChips(); renderPreviews(); });
+    modelSelect.addEventListener('change', ()=> { updateModelUI(); renderPreviews(); });
     document.getElementById('refreshBtn').addEventListener('click', loadJobs);
     document.getElementById('clearFinishedBtn').addEventListener('click', ()=> clearHistory('finished'));
     document.getElementById('clearAllBtn').addEventListener('click', ()=> clearHistory('all'));
@@ -568,6 +703,7 @@
     modal.addEventListener('click', (e)=> { if (e.target === modal) closeModal(); });
     document.addEventListener('keydown', (e)=> { if (e.key === 'Escape') closeModal(); });
 
+    updateModelUI();
     renderScaleChips();
     renderPreviews();
     loadJobs();

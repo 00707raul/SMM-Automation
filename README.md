@@ -9,7 +9,9 @@ Render web dashboard + local ComfyUI worker starter.
 - Job queue API
 - Local worker that polls Render
 - Dry-run mode for testing without ComfyUI
-- Flux2 Klein 4B UI workflows, 1–5 images
+- Flux2 Klein image workflows, 1–5 images
+- Z-Image Base text-to-image API workflow with negative prompt
+- Z-Image Base 2-image img2img API workflow
 
 ## Deploy to Render
 
@@ -103,6 +105,45 @@ This ZIP includes the upgraded dashboard:
 - download result button
 - delete job
 - clean finished history / clear all history
-- 1–5 ComfyUI API workflow files in `workflows_api/`
+- 1–5 Flux2 ComfyUI API workflow files in `workflows_api/`
+- Z-Image Base text-to-image and 2-image img2img API workflows
+- model selector in the website UI
+- local image fitting/scaling before ComfyUI so mixed image sizes do not squeeze or distort
 
 Important: `.env` is not included for safety. Keep your existing local `.env` file or create it from `.env.example`.
+
+
+## Image size fix
+
+The local worker now preprocesses uploaded images before sending them to ComfyUI.
+Every uploaded image is fitted to the selected Width × Height canvas using Sharp, so different source sizes do not get squeezed or mixed incorrectly.
+
+Default:
+
+```text
+IMAGE_FIT_MODE=cover
+```
+
+- `cover` keeps aspect ratio and centre-crops to fill the selected canvas.
+- `contain` keeps the full image and adds transparent padding.
+
+After downloading this ZIP, run:
+
+```bash
+npm.cmd install
+```
+
+This installs the new `sharp` dependency used by the worker.
+
+
+## Restored Flux2 Klein workflow options
+
+This version keeps the original Flux2 workflow files and exposes them in the website as separate selectable models:
+
+- Flux2 Klein 4B — 1 Image
+- Flux2 Klein 4B — 2 Images
+- Flux2 Klein 4B — 3 Images
+- Flux2 Klein 4B — 4 Images
+- Flux2 Klein 4B — 5 Images
+
+The matching API workflows are in `workflows_api/flux2_1_image_api.json` through `workflows_api/flux2_5_image_api.json`. The visual workflow copies are still in `workflows/`.
