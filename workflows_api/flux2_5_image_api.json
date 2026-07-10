@@ -44,16 +44,7 @@
       "title": "Load Image 5"
     }
   },
-  "2:61": {
-    "inputs": {
-      "sampler_name": "euler"
-    },
-    "class_type": "KSamplerSelect",
-    "_meta": {
-      "title": "KSampler Select"
-    }
-  },
-  "2:70": {
+  "model_unet": {
     "inputs": {
       "unet_name": "flux-2-klein-4b-fp8.safetensors",
       "weight_dtype": "default"
@@ -63,7 +54,7 @@
       "title": "Load Diffusion Model"
     }
   },
-  "2:71": {
+  "model_clip": {
     "inputs": {
       "clip_name": "qwen_3_4b.safetensors",
       "type": "flux2",
@@ -74,7 +65,7 @@
       "title": "Load CLIP"
     }
   },
-  "2:72": {
+  "model_vae": {
     "inputs": {
       "vae_name": "flux2-vae.safetensors"
     },
@@ -83,29 +74,30 @@
       "title": "Load VAE"
     }
   },
-  "1:80": {
+  "scale_1": {
     "inputs": {
-      "upscale_method": "nearest-exact",
-      "megapixels": 1,
-      "resolution_steps": 1,
+      "upscale_method": "lanczos",
+      "width": 1080,
+      "height": 1350,
+      "crop": "disabled",
       "image": [
         "1",
         0
       ]
     },
-    "class_type": "ImageScaleToTotalPixels",
+    "class_type": "ImageScale",
     "_meta": {
-      "title": "Scale Image 1"
+      "title": "Scale Image 1 To Selected Size"
     }
   },
-  "1:122": {
+  "vae_encode_1": {
     "inputs": {
       "pixels": [
-        "1:80",
+        "scale_1",
         0
       ],
       "vae": [
-        "2:72",
+        "model_vae",
         0
       ]
     },
@@ -114,29 +106,30 @@
       "title": "VAE Encode Image 1"
     }
   },
-  "2:80": {
+  "scale_2": {
     "inputs": {
-      "upscale_method": "nearest-exact",
-      "megapixels": 1,
-      "resolution_steps": 1,
+      "upscale_method": "lanczos",
+      "width": 1080,
+      "height": 1350,
+      "crop": "disabled",
       "image": [
         "2",
         0
       ]
     },
-    "class_type": "ImageScaleToTotalPixels",
+    "class_type": "ImageScale",
     "_meta": {
-      "title": "Scale Image 2"
+      "title": "Scale Image 2 To Selected Size"
     }
   },
-  "2:122": {
+  "vae_encode_2": {
     "inputs": {
       "pixels": [
-        "2:80",
+        "scale_2",
         0
       ],
       "vae": [
-        "2:72",
+        "model_vae",
         0
       ]
     },
@@ -145,29 +138,30 @@
       "title": "VAE Encode Image 2"
     }
   },
-  "3:80": {
+  "scale_3": {
     "inputs": {
-      "upscale_method": "nearest-exact",
-      "megapixels": 1,
-      "resolution_steps": 1,
+      "upscale_method": "lanczos",
+      "width": 1080,
+      "height": 1350,
+      "crop": "disabled",
       "image": [
         "3",
         0
       ]
     },
-    "class_type": "ImageScaleToTotalPixels",
+    "class_type": "ImageScale",
     "_meta": {
-      "title": "Scale Image 3"
+      "title": "Scale Image 3 To Selected Size"
     }
   },
-  "3:122": {
+  "vae_encode_3": {
     "inputs": {
       "pixels": [
-        "3:80",
+        "scale_3",
         0
       ],
       "vae": [
-        "2:72",
+        "model_vae",
         0
       ]
     },
@@ -176,29 +170,30 @@
       "title": "VAE Encode Image 3"
     }
   },
-  "4:80": {
+  "scale_4": {
     "inputs": {
-      "upscale_method": "nearest-exact",
-      "megapixels": 1,
-      "resolution_steps": 1,
+      "upscale_method": "lanczos",
+      "width": 1080,
+      "height": 1350,
+      "crop": "disabled",
       "image": [
         "4",
         0
       ]
     },
-    "class_type": "ImageScaleToTotalPixels",
+    "class_type": "ImageScale",
     "_meta": {
-      "title": "Scale Image 4"
+      "title": "Scale Image 4 To Selected Size"
     }
   },
-  "4:122": {
+  "vae_encode_4": {
     "inputs": {
       "pixels": [
-        "4:80",
+        "scale_4",
         0
       ],
       "vae": [
-        "2:72",
+        "model_vae",
         0
       ]
     },
@@ -207,29 +202,30 @@
       "title": "VAE Encode Image 4"
     }
   },
-  "5:80": {
+  "scale_5": {
     "inputs": {
-      "upscale_method": "nearest-exact",
-      "megapixels": 1,
-      "resolution_steps": 1,
+      "upscale_method": "lanczos",
+      "width": 1080,
+      "height": 1350,
+      "crop": "disabled",
       "image": [
         "5",
         0
       ]
     },
-    "class_type": "ImageScaleToTotalPixels",
+    "class_type": "ImageScale",
     "_meta": {
-      "title": "Scale Image 5"
+      "title": "Scale Image 5 To Selected Size"
     }
   },
-  "5:122": {
+  "vae_encode_5": {
     "inputs": {
       "pixels": [
-        "5:80",
+        "scale_5",
         0
       ],
       "vae": [
-        "2:72",
+        "model_vae",
         0
       ]
     },
@@ -238,57 +234,42 @@
       "title": "VAE Encode Image 5"
     }
   },
-  "2:99": {
+  "empty_latent": {
     "inputs": {
-      "image": [
-        "1:80",
-        0
-      ]
-    },
-    "class_type": "GetImageSize",
-    "_meta": {
-      "title": "Get Image Size"
-    }
-  },
-  "2:66": {
-    "inputs": {
-      "width": [
-        "2:99",
-        0
-      ],
-      "height": [
-        "2:99",
-        1
-      ],
+      "width": 1080,
+      "height": 1350,
       "batch_size": 1
     },
     "class_type": "EmptyFlux2LatentImage",
     "_meta": {
-      "title": "Empty Flux2 Latent"
+      "title": "Empty Flux2 Latent Selected Size"
     }
   },
-  "2:62": {
+  "scheduler": {
     "inputs": {
       "steps": 4,
-      "width": [
-        "2:99",
-        0
-      ],
-      "height": [
-        "2:99",
-        1
-      ]
+      "width": 1080,
+      "height": 1350
     },
     "class_type": "Flux2Scheduler",
     "_meta": {
       "title": "Flux2Scheduler"
     }
   },
-  "2:74": {
+  "sampler_select": {
     "inputs": {
-      "text": "Create a premium commercial image from the uploaded reference image(s).",
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSampler Select"
+    }
+  },
+  "positive_prompt": {
+    "inputs": {
+      "text": "Create a premium commercial product image from the uploaded reference image(s).",
       "clip": [
-        "2:71",
+        "model_clip",
         0
       ]
     },
@@ -297,26 +278,26 @@
       "title": "Positive Prompt"
     }
   },
-  "2:82": {
+  "zero_negative": {
     "inputs": {
       "conditioning": [
-        "2:74",
+        "positive_prompt",
         0
       ]
     },
     "class_type": "ConditioningZeroOut",
     "_meta": {
-      "title": "Zero Out Conditioning"
+      "title": "Zero Negative Conditioning"
     }
   },
-  "1:121": {
+  "negative_reference_1": {
     "inputs": {
       "conditioning": [
-        "2:82",
+        "zero_negative",
         0
       ],
       "latent": [
-        "1:122",
+        "vae_encode_1",
         0
       ]
     },
@@ -325,14 +306,14 @@
       "title": "Negative Reference Latent 1"
     }
   },
-  "1:123": {
+  "positive_reference_1": {
     "inputs": {
       "conditioning": [
-        "2:74",
+        "positive_prompt",
         0
       ],
       "latent": [
-        "1:122",
+        "vae_encode_1",
         0
       ]
     },
@@ -341,14 +322,14 @@
       "title": "Positive Reference Latent 1"
     }
   },
-  "2:121": {
+  "negative_reference_2": {
     "inputs": {
       "conditioning": [
-        "1:121",
+        "negative_reference_1",
         0
       ],
       "latent": [
-        "2:122",
+        "vae_encode_2",
         0
       ]
     },
@@ -357,14 +338,14 @@
       "title": "Negative Reference Latent 2"
     }
   },
-  "2:123": {
+  "positive_reference_2": {
     "inputs": {
       "conditioning": [
-        "1:123",
+        "positive_reference_1",
         0
       ],
       "latent": [
-        "2:122",
+        "vae_encode_2",
         0
       ]
     },
@@ -373,14 +354,14 @@
       "title": "Positive Reference Latent 2"
     }
   },
-  "3:121": {
+  "negative_reference_3": {
     "inputs": {
       "conditioning": [
-        "2:121",
+        "negative_reference_2",
         0
       ],
       "latent": [
-        "3:122",
+        "vae_encode_3",
         0
       ]
     },
@@ -389,14 +370,14 @@
       "title": "Negative Reference Latent 3"
     }
   },
-  "3:123": {
+  "positive_reference_3": {
     "inputs": {
       "conditioning": [
-        "2:123",
+        "positive_reference_2",
         0
       ],
       "latent": [
-        "3:122",
+        "vae_encode_3",
         0
       ]
     },
@@ -405,14 +386,14 @@
       "title": "Positive Reference Latent 3"
     }
   },
-  "4:121": {
+  "negative_reference_4": {
     "inputs": {
       "conditioning": [
-        "3:121",
+        "negative_reference_3",
         0
       ],
       "latent": [
-        "4:122",
+        "vae_encode_4",
         0
       ]
     },
@@ -421,14 +402,14 @@
       "title": "Negative Reference Latent 4"
     }
   },
-  "4:123": {
+  "positive_reference_4": {
     "inputs": {
       "conditioning": [
-        "3:123",
+        "positive_reference_3",
         0
       ],
       "latent": [
-        "4:122",
+        "vae_encode_4",
         0
       ]
     },
@@ -437,14 +418,14 @@
       "title": "Positive Reference Latent 4"
     }
   },
-  "5:121": {
+  "negative_reference_5": {
     "inputs": {
       "conditioning": [
-        "4:121",
+        "negative_reference_4",
         0
       ],
       "latent": [
-        "5:122",
+        "vae_encode_5",
         0
       ]
     },
@@ -453,14 +434,14 @@
       "title": "Negative Reference Latent 5"
     }
   },
-  "5:123": {
+  "positive_reference_5": {
     "inputs": {
       "conditioning": [
-        "4:123",
+        "positive_reference_4",
         0
       ],
       "latent": [
-        "5:122",
+        "vae_encode_5",
         0
       ]
     },
@@ -469,7 +450,7 @@
       "title": "Positive Reference Latent 5"
     }
   },
-  "2:73": {
+  "noise": {
     "inputs": {
       "noise_seed": 706746523326117
     },
@@ -478,19 +459,19 @@
       "title": "Random Noise"
     }
   },
-  "2:63": {
+  "guider": {
     "inputs": {
       "cfg": 1,
       "model": [
-        "2:70",
+        "model_unet",
         0
       ],
       "positive": [
-        "5:123",
+        "positive_reference_5",
         0
       ],
       "negative": [
-        "5:121",
+        "negative_reference_5",
         0
       ]
     },
@@ -499,26 +480,26 @@
       "title": "CFG Guider"
     }
   },
-  "2:64": {
+  "sampler": {
     "inputs": {
       "noise": [
-        "2:73",
+        "noise",
         0
       ],
       "guider": [
-        "2:63",
+        "guider",
         0
       ],
       "sampler": [
-        "2:61",
+        "sampler_select",
         0
       ],
       "sigmas": [
-        "2:62",
+        "scheduler",
         0
       ],
       "latent_image": [
-        "2:66",
+        "empty_latent",
         0
       ]
     },
@@ -527,14 +508,14 @@
       "title": "Custom Sampler Advanced"
     }
   },
-  "2:65": {
+  "decode": {
     "inputs": {
       "samples": [
-        "2:64",
+        "sampler",
         0
       ],
       "vae": [
-        "2:72",
+        "model_vae",
         0
       ]
     },
@@ -543,11 +524,11 @@
       "title": "VAE Decode"
     }
   },
-  "99": {
+  "save": {
     "inputs": {
       "filename_prefix": "Flux2_Klein_5Image",
       "images": [
-        "2:65",
+        "decode",
         0
       ]
     },

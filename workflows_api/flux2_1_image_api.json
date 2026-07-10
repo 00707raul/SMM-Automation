@@ -5,42 +5,20 @@
     },
     "class_type": "LoadImage",
     "_meta": {
-      "title": "Загрузить изображение"
+      "title": "Load Image 1"
     }
   },
-  "3": {
-    "inputs": {
-      "filename_prefix": "Flux2_Klein_1Image_Detailed_Upscaled",
-      "images": [
-        "5",
-        0
-      ]
-    },
-    "class_type": "SaveImage",
-    "_meta": {
-      "title": "Сохранить изображение"
-    }
-  },
-  "2:61": {
-    "inputs": {
-      "sampler_name": "euler"
-    },
-    "class_type": "KSamplerSelect",
-    "_meta": {
-      "title": "Выбор KSampler"
-    }
-  },
-  "2:70": {
+  "model_unet": {
     "inputs": {
       "unet_name": "flux-2-klein-4b-fp8.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
     "_meta": {
-      "title": "Загрузить модель диффузии"
+      "title": "Load Diffusion Model"
     }
   },
-  "2:71": {
+  "model_clip": {
     "inputs": {
       "clip_name": "qwen_3_4b.safetensors",
       "type": "flux2",
@@ -48,249 +26,223 @@
     },
     "class_type": "CLIPLoader",
     "_meta": {
-      "title": "Загрузить CLIP"
+      "title": "Load CLIP"
     }
   },
-  "2:72": {
+  "model_vae": {
     "inputs": {
       "vae_name": "flux2-vae.safetensors"
     },
     "class_type": "VAELoader",
     "_meta": {
-      "title": "Загрузить VAE"
+      "title": "Load VAE"
     }
   },
-  "2:66": {
+  "scale_1": {
     "inputs": {
-      "width": [
-        "2:99",
-        0
-      ],
-      "height": [
-        "2:99",
-        1
-      ],
-      "batch_size": 1
-    },
-    "class_type": "EmptyFlux2LatentImage",
-    "_meta": {
-      "title": "Пустой Flux 2 latent"
-    }
-  },
-  "2:80": {
-    "inputs": {
-      "upscale_method": "nearest-exact",
-      "megapixels": 1.5,
-      "resolution_steps": 4,
+      "upscale_method": "lanczos",
+      "width": 1080,
+      "height": 1350,
+      "crop": "disabled",
       "image": [
         "1",
         0
       ]
     },
-    "class_type": "ImageScaleToTotalPixels",
+    "class_type": "ImageScale",
     "_meta": {
-      "title": "Масштабировать изображение до общего количества пикселей"
+      "title": "Scale Image 1 To Selected Size"
     }
   },
-  "2:62": {
+  "vae_encode_1": {
     "inputs": {
-      "steps": 8,
-      "width": [
-        "2:99",
+      "pixels": [
+        "scale_1",
         0
       ],
-      "height": [
-        "2:99",
-        1
+      "vae": [
+        "model_vae",
+        0
       ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode Image 1"
+    }
+  },
+  "empty_latent": {
+    "inputs": {
+      "width": 1080,
+      "height": 1350,
+      "batch_size": 1
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "Empty Flux2 Latent Selected Size"
+    }
+  },
+  "scheduler": {
+    "inputs": {
+      "steps": 4,
+      "width": 1080,
+      "height": 1350
     },
     "class_type": "Flux2Scheduler",
     "_meta": {
       "title": "Flux2Scheduler"
     }
   },
-  "2:74": {
+  "sampler_select": {
     "inputs": {
-      "text": "Create a premium ultra-clean commercial product image using the uploaded product photo as the main reference. Preserve the bottle shape, label, logo, colors, and brand identity as accurately as possible. Enhance lighting, reflections, splash effects, composition, and background for a polished advertising look. Keep the product sharp, centered, realistic, high-detail, clean, and blur-free. Avoid changing the core product design.",
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSampler Select"
+    }
+  },
+  "positive_prompt": {
+    "inputs": {
+      "text": "Create a premium commercial product image from the uploaded reference image(s).",
       "clip": [
-        "2:71",
+        "model_clip",
         0
       ]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "CLIP Text Encode (Positive Prompt)"
+      "title": "Positive Prompt"
     }
   },
-  "2:82": {
+  "zero_negative": {
     "inputs": {
       "conditioning": [
-        "2:74",
+        "positive_prompt",
         0
       ]
     },
     "class_type": "ConditioningZeroOut",
     "_meta": {
-      "title": "Обнуление кондиционирования"
+      "title": "Zero Negative Conditioning"
     }
   },
-  "2:121": {
+  "negative_reference_1": {
     "inputs": {
       "conditioning": [
-        "2:82",
+        "zero_negative",
         0
       ],
       "latent": [
-        "2:122",
+        "vae_encode_1",
         0
       ]
     },
     "class_type": "ReferenceLatent",
     "_meta": {
-      "title": "Эталонный латент"
+      "title": "Negative Reference Latent 1"
     }
   },
-  "2:99": {
-    "inputs": {
-      "image": [
-        "2:80",
-        0
-      ]
-    },
-    "class_type": "GetImageSize",
-    "_meta": {
-      "title": "Получить размер изображения"
-    }
-  },
-  "2:123": {
+  "positive_reference_1": {
     "inputs": {
       "conditioning": [
-        "2:74",
+        "positive_prompt",
         0
       ],
       "latent": [
-        "2:122",
+        "vae_encode_1",
         0
       ]
     },
     "class_type": "ReferenceLatent",
     "_meta": {
-      "title": "Эталонный латент"
+      "title": "Positive Reference Latent 1"
     }
   },
-  "2:122": {
+  "noise": {
     "inputs": {
-      "pixels": [
-        "2:80",
-        0
-      ],
-      "vae": [
-        "2:72",
-        0
-      ]
-    },
-    "class_type": "VAEEncode",
-    "_meta": {
-      "title": "Кодировать VAE"
-    }
-  },
-  "2:64": {
-    "inputs": {
-      "noise": [
-        "2:73",
-        0
-      ],
-      "guider": [
-        "2:63",
-        0
-      ],
-      "sampler": [
-        "2:61",
-        0
-      ],
-      "sigmas": [
-        "2:62",
-        0
-      ],
-      "latent_image": [
-        "2:66",
-        0
-      ]
-    },
-    "class_type": "SamplerCustomAdvanced",
-    "_meta": {
-      "title": "Пользовательский сэмплер (Расширенный)"
-    }
-  },
-  "2:65": {
-    "inputs": {
-      "samples": [
-        "2:64",
-        0
-      ],
-      "vae": [
-        "2:72",
-        0
-      ]
-    },
-    "class_type": "VAEDecode",
-    "_meta": {
-      "title": "Декодировать VAE"
-    }
-  },
-  "2:73": {
-    "inputs": {
-      "noise_seed": 0
+      "noise_seed": 706746523326117
     },
     "class_type": "RandomNoise",
     "_meta": {
-      "title": "Случайный шум"
+      "title": "Random Noise"
     }
   },
-  "2:63": {
+  "guider": {
     "inputs": {
       "cfg": 1,
       "model": [
-        "2:70",
+        "model_unet",
         0
       ],
       "positive": [
-        "2:123",
+        "positive_reference_1",
         0
       ],
       "negative": [
-        "2:121",
+        "negative_reference_1",
         0
       ]
     },
     "class_type": "CFGGuider",
     "_meta": {
-      "title": "CFG Гид"
+      "title": "CFG Guider"
     }
   },
-  "4": {
+  "sampler": {
     "inputs": {
-      "model_name": "4x-UltraSharp.pth"
-    },
-    "class_type": "UpscaleModelLoader",
-    "_meta": {
-      "title": "Загрузить модель апскейла"
-    }
-  },
-  "5": {
-    "inputs": {
-      "upscale_model": [
-        "4",
+      "noise": [
+        "noise",
         0
       ],
-      "image": [
-        "2:65",
+      "guider": [
+        "guider",
+        0
+      ],
+      "sampler": [
+        "sampler_select",
+        0
+      ],
+      "sigmas": [
+        "scheduler",
+        0
+      ],
+      "latent_image": [
+        "empty_latent",
         0
       ]
     },
-    "class_type": "ImageUpscaleWithModel",
+    "class_type": "SamplerCustomAdvanced",
     "_meta": {
-      "title": "Апскейл изображения моделью"
+      "title": "Custom Sampler Advanced"
+    }
+  },
+  "decode": {
+    "inputs": {
+      "samples": [
+        "sampler",
+        0
+      ],
+      "vae": [
+        "model_vae",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "save": {
+    "inputs": {
+      "filename_prefix": "Flux2_Klein_1Image",
+      "images": [
+        "decode",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
     }
   }
 }
