@@ -95,6 +95,19 @@
     .modal-card img{max-width:100%;max-height:82vh;border-radius:14px;display:block}
     .close{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.08);color:white;border:1px solid var(--line);width:42px;height:42px;border-radius:999px}
 
+    .prompt-ai-panel{border:1px solid var(--line);border-radius:18px;background:var(--input-soft);overflow:hidden}
+    .prompt-ai-panel summary{cursor:pointer;padding:14px 16px;font-weight:900;display:flex;align-items:center;justify-content:space-between}
+    .prompt-ai-panel summary::after{content:'AI';font-size:11px;letter-spacing:.08em;color:var(--green);border:1px solid rgba(74,222,128,.35);padding:4px 8px;border-radius:999px}
+    .prompt-ai-inner{padding:0 16px 16px;display:grid;gap:12px}
+    .prompt-ai-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .prompt-ai-status{font-size:12px;color:var(--muted);min-height:18px}
+    .prompt-ai-status.good{color:var(--green)}
+    .prompt-ai-status.bad{color:var(--red)}
+    .prompt-ai-notes{display:none;border:1px solid var(--line-soft);border-radius:14px;background:var(--input);padding:12px}
+    .prompt-ai-notes.show{display:block}
+    .prompt-ai-notes ul{margin:8px 0 0 18px;padding:0;color:var(--muted);line-height:1.5}
+    .mini-textarea{min-height:82px}
+
     .preview-list{display:flex;gap:10px;overflow:auto;padding-top:10px}
     .preview-item{min-width:70px;width:70px;height:70px;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:var(--input-soft)}
 
@@ -267,6 +280,28 @@
               </div>
             </div>
 
+            <details class="prompt-ai-panel" id="promptAiPanel" open>
+              <summary>Prompt AI / Super Prompt</summary>
+              <div class="prompt-ai-inner">
+                <div>
+                  <label>Saved Prompt AI instruction</label>
+                  <textarea id="promptAiInstruction" class="mini-textarea" rows="4"></textarea>
+                  <div class="tiny" style="margin-top:8px">Saved in this browser. It stays after refresh and is sent with every super-prompt request.</div>
+                </div>
+                <div>
+                  <label>Short idea / quick prompt</label>
+                  <textarea id="promptAiShort" class="mini-textarea" rows="3" placeholder="Example: Chito Gvrito bottle in Baku seaside premium commercial ad"></textarea>
+                </div>
+                <div class="prompt-ai-actions">
+                  <button class="secondary" type="button" id="savePromptAiBtn">Save Instruction</button>
+                  <button class="secondary" type="button" id="generatePromptBtn">Generate Super Prompt</button>
+                  <button class="primary" type="button" id="generatePromptAndJobBtn">Generate Prompt + Create Job</button>
+                </div>
+                <div id="promptAiStatus" class="prompt-ai-status"></div>
+                <div id="promptAiNotes" class="prompt-ai-notes"></div>
+              </div>
+            </details>
+
             <div>
               <label>Prompt</label>
               <textarea name="prompt" rows="6">Create a premium commercial social media advertising image. Keep product identity clean and professional.</textarea>
@@ -365,6 +400,23 @@
     const uploadLabel = document.getElementById('uploadLabel');
     const negativePromptWrap = document.getElementById('negativePromptWrap');
     const themeToggle = document.getElementById('themeToggle');
+    const promptAiInstruction = document.getElementById('promptAiInstruction');
+    const promptAiShort = document.getElementById('promptAiShort');
+    const promptAiStatus = document.getElementById('promptAiStatus');
+    const promptAiNotes = document.getElementById('promptAiNotes');
+    const generatePromptBtn = document.getElementById('generatePromptBtn');
+    const generatePromptAndJobBtn = document.getElementById('generatePromptAndJobBtn');
+    const savePromptAiBtn = document.getElementById('savePromptAiBtn');
+    const promptInput = form.elements.prompt;
+    const negativePromptInput = form.elements.negativePrompt;
+
+    const DEFAULT_PROMPT_AI_INSTRUCTION = `You are a professional AI image prompt engineer for SMM advertising.
+Create accurate, premium, visually attractive image prompts.
+Preserve product identity, bottle shape, labels, logos, packaging, colors and important details when a product is involved.
+Improve composition, lighting, background, realism, cinematic quality and commercial appeal.
+Do not overcomplicate the output. Keep the prompt useful for image generation, not a long article.
+Generate a strong negative prompt when the selected image model supports or benefits from it.
+Return strict JSON only.`;
 
     const MODEL_PRESETS = {
       flux2_klein_1: {
@@ -455,6 +507,7 @@
       localStorage.setItem('smm_width', widthInput.value || '1080');
       localStorage.setItem('smm_height', heightInput.value || '1350');
       localStorage.setItem('smm_scale_label', scaleLabel.value || '');
+      localStorage.setItem('smm_prompt_ai_short', promptAiShort.value || '');
     }
 
     function restoreUiState(){
@@ -465,10 +518,82 @@
       if (localStorage.getItem('smm_width')) widthInput.value = localStorage.getItem('smm_width');
       if (localStorage.getItem('smm_height')) heightInput.value = localStorage.getItem('smm_height');
       if (localStorage.getItem('smm_scale_label')) scaleLabel.value = localStorage.getItem('smm_scale_label');
+      if (localStorage.getItem('smm_prompt_ai_short')) promptAiShort.value = localStorage.getItem('smm_prompt_ai_short');
     }
 
     function activeModel(){
       return MODEL_PRESETS[modelSelect.value] || MODEL_PRESETS.flux2_klein_1;
+    }
+
+    function loadPromptAiInstruction(){
+      promptAiInstruction.value = localStorage.getItem('smm_prompt_ai_instruction') || DEFAULT_PROMPT_AI_INSTRUCTION;
+    }
+
+    function savePromptAiInstruction(){
+      localStorage.setItem('smm_prompt_ai_instruction', promptAiInstruction.value || DEFAULT_PROMPT_AI_INSTRUCTION);
+      setPromptAiStatus('Prompt AI instruction saved.', 'good');
+    }
+
+    function setPromptAiStatus(message, type=''){
+      promptAiStatus.textContent = message || '';
+      promptAiStatus.className = `prompt-ai-status ${type}`.trim();
+    }
+
+    function showPromptAiNotes(notes){
+      const list = Array.isArray(notes) ? notes : [];
+      if (!list.length) {
+        promptAiNotes.classList.remove('show');
+        promptAiNotes.innerHTML = '';
+        return;
+      }
+      promptAiNotes.innerHTML = `<strong>Prompt AI notes</strong><ul>${list.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`;
+      promptAiNotes.classList.add('show');
+    }
+
+    async function generateSuperPrompt(createAfter=false){
+      const shortPrompt = (promptAiShort.value || promptInput.value || '').trim();
+      if (!shortPrompt) {
+        setPromptAiStatus('Write a short idea first.', 'bad');
+        return;
+      }
+
+      const buttons = [generatePromptBtn, generatePromptAndJobBtn, savePromptAiBtn];
+      buttons.forEach(btn => btn.disabled = true);
+      setPromptAiStatus('Generating super prompt with NVIDIA Prompt AI...');
+      showPromptAiNotes([]);
+
+      try {
+        localStorage.setItem('smm_prompt_ai_instruction', promptAiInstruction.value || DEFAULT_PROMPT_AI_INSTRUCTION);
+        const res = await fetch('/api/prompt-ai/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            masterInstruction: promptAiInstruction.value || DEFAULT_PROMPT_AI_INSTRUCTION,
+            shortPrompt,
+            modelKey: modelSelect.value,
+            platform: form.elements.platform.value,
+            scaleLabel: scaleLabel.value,
+            width: widthInput.value,
+            height: heightInput.value,
+            negativePrompt: negativePromptInput.value
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || `Prompt AI failed with status ${res.status}`);
+
+        promptInput.value = data.positive_prompt || promptInput.value;
+        negativePromptInput.value = data.negative_prompt || negativePromptInput.value;
+        showPromptAiNotes(data.notes || []);
+        setPromptAiStatus(`Super prompt generated with ${data.model || 'Prompt AI'}.`, 'good');
+        saveUiState();
+
+        if (createAfter) form.requestSubmit();
+      } catch (err) {
+        setPromptAiStatus(err.message, 'bad');
+        alert(err.message);
+      } finally {
+        buttons.forEach(btn => btn.disabled = false);
+      }
     }
 
     function updateModelUI(){
@@ -761,6 +886,11 @@
     }
 
     form.addEventListener('submit', createJob);
+    savePromptAiBtn.addEventListener('click', savePromptAiInstruction);
+    generatePromptBtn.addEventListener('click', () => generateSuperPrompt(false));
+    generatePromptAndJobBtn.addEventListener('click', () => generateSuperPrompt(true));
+    promptAiInstruction.addEventListener('input', () => localStorage.setItem('smm_prompt_ai_instruction', promptAiInstruction.value || DEFAULT_PROMPT_AI_INSTRUCTION));
+    promptAiShort.addEventListener('input', saveUiState);
     imageInput.addEventListener('change', renderPreviews);
     document.getElementById('resetBtn').addEventListener('click', ()=> { form.reset(); activeScale='4-5'; modelSelect.value='flux2_klein_1'; updateModelUI(); renderScaleChips(); renderPreviews(); saveUiState(); });
     modelSelect.addEventListener('change', ()=> { saveUiState(); updateModelUI(); renderPreviews(); });
@@ -771,6 +901,7 @@
     modal.addEventListener('click', (e)=> { if (e.target === modal) closeModal(); });
     document.addEventListener('keydown', (e)=> { if (e.key === 'Escape') closeModal(); });
 
+    loadPromptAiInstruction();
     applyTheme(localStorage.getItem('smm_theme') || 'dark');
     restoreUiState();
     themeToggle.addEventListener('click', ()=> applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));

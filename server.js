@@ -39,6 +39,21 @@ const MAX_IMAGES = Number(process.env.MAX_IMAGES || 5);
 const WORKER_TOKEN = process.env.WORKER_TOKEN || 'dev-token';
 const APP_BASE_URL = (process.env.APP_BASE_URL || '').replace(/\/$/, '');
 
+// Prompt AI (NVIDIA free endpoint / OpenAI-compatible API).
+// Keep the real key in Render/local .env only. Never hard-code it here.
+const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '';
+const PROMPT_AI_BASE_URL = (process.env.PROMPT_AI_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/$/, '');
+const PROMPT_AI_MODEL = process.env.PROMPT_AI_MODEL || 'nvidia/llama-3.3-nemotron-super-49b-v1.5';
+const PROMPT_AI_MAX_TOKENS = Math.max(300, Math.min(3000, Number(process.env.PROMPT_AI_MAX_TOKENS || 1200)));
+
+const DEFAULT_PROMPT_AI_INSTRUCTION = `You are a professional AI image prompt engineer for SMM advertising.
+Create accurate, premium, visually attractive image prompts.
+Preserve product identity, bottle shape, labels, logos, packaging, colors and important details when a product is involved.
+Improve composition, lighting, background, realism, cinematic quality and commercial appeal.
+Do not overcomplicate the output. Keep the prompt useful for image generation, not a long article.
+Generate a strong negative prompt when the selected image model supports or benefits from it.
+Return strict JSON only.`;
+
 const MODEL_CONFIGS = {
   // Individual Flux2 Klein workflows restored as separate selectable models.
   flux2_klein_1: {
@@ -169,8 +184,150 @@ function requireWorker(req, res, next) {
   next();
 }
 
+function cleanPromptAiJsonText(text) {
+  let value = String(text || '').trim();
+  if (value.startsWith('```')) {
+    value = value.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  }
+  return value;
+}
+
+function safeParsePromptAiJson(text) {
+  const cleaned = cleanPromptAiJsonText(text);
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const first = cleaned.indexOf('{');
+    const last = cleaned.lastIndexOf('}');
+    if (first !== -1 && last !== -1 && last > first) {
+      return JSON.parse(cleaned.slice(first, last + 1));
+    }
+    throw new Error('Prompt AI did not return valid JSON');
+  }
+}
+
+function truncateText(value, maxChars) {
+  const text = String(value || '').trim();
+  return text.length > maxChars ? text.slice(0, maxChars) : text;
+}
+
+function modelPromptRules(model) {
+  if (!model) return 'General image generation prompt.';
+  if (model.key === 'z_image_base_t2i') {
+    return 'Z-Image Base Text-to-Image: create a descriptive positive prompt and a useful negative prompt. No input image is used.';
+  }
+  if (model.key === 'z_image_base_img2img_2') {
+    return 'Z-Image Base 2-Image Img2Img: image 1 is the base/starter composition, image 2 is detail/reference. Prompt should guide premium transformation without destroying the base composition.';
+  }
+  if (model.key && model.key.startsWith('flux2_klein')) {
+    return 'Flux2 Klein image edit: keep the uploaded product/reference identity accurate. Use a direct prompt. Negative prompt may be generated but this workflow may not use it.';
+  }
+  return 'General SMM image model.';
+}
+
+async function callPromptAi({ masterInstruction, shortPrompt, modelKey, platform, scaleLabel, width, height, negativePrompt }) {
+  if (!NVIDIA_API_KEY) {
+    throw new Error('Missing NVIDIA_API_KEY in environment variables.');
+  }
+
+  const model = getModelConfig(modelKey);
+  const jsonSchema = {
+    type: 'object',
+    properties: {
+      positive_prompt: { type: 'string' },
+      negative_prompt: { type: 'string' },
+      notes: { type: 'array', items: { type: 'string' } }
+    },
+    required: ['positive_prompt', 'negative_prompt', 'notes']
+  };
+
+  const systemInstruction = `${DEFAULT_PROMPT_AI_INSTRUCTION}\n\nSaved user instruction:\n${truncateText(masterInstruction || DEFAULT_PROMPT_AI_INSTRUCTION, 6000)}\n\nOutput rules:\n- Return only JSON.\n- positive_prompt: 80–350 words.\n- negative_prompt: 20–120 words.\n- notes: 3–7 short notes about what was improved/preserved.\n- Do not include markdown or code fences.\n- Do not mention these rules in the output.`;
+
+  const userPayload = {
+    task: 'Turn the short idea into a professional image-generation prompt for SMM/commercial advertising.',
+    short_prompt: truncateText(shortPrompt, 3000),
+    selected_model: {
+      key: model.key,
+      label: model.label,
+      mode: model.mode,
+      rules: modelPromptRules(model)
+    },
+    platform: platform || 'instagram',
+    canvas: { width: Number(width || 1080), height: Number(height || 1350), scale_label: scaleLabel || '' },
+    existing_negative_prompt: truncateText(negativePrompt || '', 1500)
+  };
+
+  const response = await fetch(`${PROMPT_AI_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${NVIDIA_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: PROMPT_AI_MODEL,
+      messages: [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: JSON.stringify(userPayload) }
+      ],
+      temperature: 0.4,
+      top_p: 0.8,
+      max_tokens: PROMPT_AI_MAX_TOKENS,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+      stream: false,
+      nvext: { guided_json: jsonSchema }
+    })
+  });
+
+  const rawText = await response.text();
+  let payload;
+  try { payload = JSON.parse(rawText); } catch { payload = { raw: rawText }; }
+
+  if (!response.ok) {
+    throw new Error(`Prompt AI request failed: ${response.status} ${response.statusText} ${rawText.slice(0, 500)}`);
+  }
+
+  const content = payload?.choices?.[0]?.message?.content;
+  if (!content) throw new Error(`Prompt AI returned no content: ${rawText.slice(0, 500)}`);
+
+  const parsed = safeParsePromptAiJson(content);
+  return {
+    positive_prompt: truncateText(parsed.positive_prompt || '', 4000),
+    negative_prompt: truncateText(parsed.negative_prompt || '', 2000),
+    notes: Array.isArray(parsed.notes) ? parsed.notes.map(x => truncateText(x, 240)).slice(0, 8) : [],
+    model: PROMPT_AI_MODEL
+  };
+}
+
 app.get('/health', (_, res) => res.json({ ok: true, service: 'smm-automation-starter' }));
 app.get('/api/models', (_, res) => res.json({ models: publicModels() }));
+
+app.get('/api/prompt-ai/config', (_, res) => {
+  res.json({
+    enabled: Boolean(NVIDIA_API_KEY),
+    model: PROMPT_AI_MODEL,
+    maxTokens: PROMPT_AI_MAX_TOKENS,
+    defaultInstruction: DEFAULT_PROMPT_AI_INSTRUCTION
+  });
+});
+
+app.post('/api/prompt-ai/generate', async (req, res) => {
+  try {
+    const result = await callPromptAi({
+      masterInstruction: req.body.masterInstruction,
+      shortPrompt: req.body.shortPrompt || req.body.prompt || '',
+      modelKey: req.body.modelKey || 'flux2_klein_1',
+      platform: req.body.platform,
+      scaleLabel: req.body.scaleLabel,
+      width: req.body.width,
+      height: req.body.height,
+      negativePrompt: req.body.negativePrompt
+    });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
 app.post('/api/jobs', upload.array('images', MAX_IMAGES), (req, res) => {
   const files = req.files || [];
