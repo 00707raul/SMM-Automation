@@ -158,3 +158,12 @@ For both Z-Image Base Text-to-Image and Z-Image Base 2-Image Img2Img, the projec
 - `models/vae/ae.safetensors`
 
 Do not use `qwen_3_8b_fp8mixed.safetensors` with these Z-Image workflows. It can fail in KSampler with a hidden-size error like `expected normalized_shape=[2560] ... got ... 12288`.
+
+## UI polish update
+
+- Quick Tips is now a compact collapsible panel inside the header.
+- Added Dark / Light mode toggle with saved theme preference.
+- The selected AI model stays selected after creating a job.
+- The selected scale / size stays selected after creating a job.
+- Width and height are saved locally and restored on page refresh.
+- File upload is cleared after job creation, but model, prompt and scale stay in place for faster repeated generation.

@@ -4,19 +4,28 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SMM AI Engine</title>
+  <script>document.documentElement.dataset.theme = localStorage.getItem("smm_theme") || "dark";</script>
   <style>
     :root{
-      --bg:#09111f; --panel:#101826; --panel-2:#151f31; --line:#273247; --text:#eef3fb; --muted:#90a0bb;
+      --bg:#09111f; --bg2:#0b1322; --card-bg:linear-gradient(180deg,rgba(18,27,43,.98),rgba(16,24,38,.96));
+      --panel:#101826; --panel-2:#151f31; --input:#0b1320; --input-soft:#0a1220; --job-bg:rgba(255,255,255,.025);
+      --line:#273247; --line-soft:rgba(148,163,184,.22); --text:#eef3fb; --muted:#90a0bb; --label:#dce7f8;
       --green:#4ade80; --green2:#22c55e; --yellow:#fbbf24; --red:#f87171; --blue:#60a5fa; --violet:#8b5cf6;
-      --shadow:0 18px 50px rgba(0,0,0,.28); --radius:20px;
+      --shadow:0 18px 50px rgba(0,0,0,.28); --radius:20px; color-scheme:dark;
+    }
+    html[data-theme="light"]{
+      --bg:#f5f7fb; --bg2:#eef3fb; --card-bg:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,251,255,.96));
+      --panel:#ffffff; --panel-2:#f1f5fb; --input:#ffffff; --input-soft:#f6f9fd; --job-bg:rgba(15,23,42,.025);
+      --line:#d7e0ee; --line-soft:rgba(100,116,139,.22); --text:#0f172a; --muted:#64748b; --label:#1e293b;
+      --shadow:0 18px 45px rgba(15,23,42,.10); color-scheme:light;
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(180deg,#0a1220 0%,#0b1322 100%);color:var(--text)}
+    body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);color:var(--text);transition:background .25s ease,color .25s ease}
     .container{max-width:1380px;margin:0 auto;padding:28px 18px 60px}
     .hero{display:flex;gap:18px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px}
-    .hero-card{background:linear-gradient(180deg,rgba(18,27,43,.98),rgba(16,24,38,.96));border:1px solid var(--line);box-shadow:var(--shadow);border-radius:24px;padding:22px}
-    .hero-main{flex:1 1 760px}
-    .hero-side{width:320px;max-width:100%}
+    .hero-card{background:var(--card-bg);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:24px;padding:22px;transition:background .25s ease,border-color .25s ease}
+    .hero-main{flex:1 1 100%}
+    .hero-side{display:none}
     h1{margin:0 0 10px;font-size:34px;line-height:1.08}
     .sub{color:var(--muted);margin:0}
     .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
@@ -25,7 +34,7 @@
     .stat .l{font-size:12px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.08em}
 
     .layout{display:grid;grid-template-columns:420px 1fr;gap:18px;align-items:start}
-    .card{background:linear-gradient(180deg,rgba(18,27,43,.96),rgba(16,24,38,.94));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .card{background:var(--card-bg);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);transition:background .25s ease,border-color .25s ease}
     .card .head{padding:18px 18px 0}
     .card .body{padding:18px}
     .card h2{margin:0;font-size:20px}
@@ -33,30 +42,30 @@
     .tiny{font-size:12px;color:var(--muted)}
 
     .form-grid{display:grid;gap:14px}
-    label{font-size:13px;font-weight:700;color:#dce7f8;display:block;margin-bottom:7px}
-    input,textarea,select{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:#0b1320;color:var(--text);outline:none}
+    label{font-size:13px;font-weight:700;color:var(--label);display:block;margin-bottom:7px}
+    input,textarea,select{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--input);color:var(--text);outline:none;transition:background .2s ease,border-color .2s ease,color .2s ease}
     textarea{resize:vertical;min-height:120px}
-    .upload{border:1.5px dashed #35507b;background:#0a1220;border-radius:18px;padding:16px;text-align:center}
+    .upload{border:1.5px dashed color-mix(in srgb,var(--blue) 45%,var(--line));background:var(--input-soft);border-radius:18px;padding:16px;text-align:center}
     .upload input{background:transparent;border:none;padding:0;margin-top:8px}
     .chips{display:flex;flex-wrap:wrap;gap:10px}
-    .chip{border:1px solid var(--line);background:#0b1320;color:var(--text);padding:10px 12px;border-radius:999px;cursor:pointer;font-size:13px;transition:.2s}
+    .chip{border:1px solid var(--line);background:var(--input);color:var(--text);padding:10px 12px;border-radius:999px;cursor:pointer;font-size:13px;transition:.2s}
     .chip.active{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.45);color:#d9ffe7}
     .chip small{display:block;color:var(--muted)}
     .row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .actions{display:flex;gap:10px;flex-wrap:wrap}
     button{border:none;border-radius:14px;padding:12px 16px;font-weight:800;cursor:pointer;transition:.2s}
     .primary{background:linear-gradient(180deg,var(--green),var(--green2));color:#06270f}
-    .secondary{background:#111b2c;color:#e6edf7;border:1px solid var(--line)}
+    .secondary{background:var(--input);color:var(--text);border:1px solid var(--line)}
     .danger{background:#301318;color:#ffd7d7;border:1px solid #5b252e}
     button:hover{transform:translateY(-1px)}
     button:disabled{opacity:.6;cursor:not-allowed;transform:none}
 
     .toolbar{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:12px}
     .toolbar .left,.toolbar .right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .pill{padding:8px 12px;border-radius:999px;background:#0b1320;border:1px solid var(--line);font-size:13px;color:var(--muted)}
+    .pill{padding:8px 12px;border-radius:999px;background:var(--input);border:1px solid var(--line);font-size:13px;color:var(--muted)}
 
     .jobs{display:grid;gap:14px}
-    .job{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:18px;padding:16px;display:grid;gap:14px}
+    .job{background:var(--job-bg);border:1px solid var(--line);border-radius:18px;padding:16px;display:grid;gap:14px}
     .job-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
     .status{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
     .status .dot{width:9px;height:9px;border-radius:999px;background:currentColor}
@@ -66,33 +75,33 @@
     .status.failed{background:rgba(248,113,113,.12);color:var(--red)}
 
     .progress-wrap{display:grid;gap:8px}
-    .progress-bar{height:10px;border-radius:999px;background:#0a1220;border:1px solid #22304a;overflow:hidden}
+    .progress-bar{height:10px;border-radius:999px;background:var(--input-soft);border:1px solid var(--line);overflow:hidden}
     .progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#60a5fa,#4ade80);width:0%;transition:width .6s ease}
     .job-meta{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px}
     .job-grid{display:grid;grid-template-columns:1fr 260px;gap:14px}
     .thumbs{display:flex;gap:10px;flex-wrap:wrap}
-    .thumbs img,.result-card img{width:88px;height:88px;object-fit:cover;border-radius:14px;border:1px solid var(--line);cursor:pointer;background:#0a1220}
-    .result-card{background:#0b1320;border:1px solid var(--line);border-radius:16px;padding:12px}
+    .thumbs img,.result-card img{width:88px;height:88px;object-fit:cover;border-radius:14px;border:1px solid var(--line);cursor:pointer;background:var(--input-soft)}
+    .result-card{background:var(--input);border:1px solid var(--line);border-radius:16px;padding:12px}
     .result-card img{width:100%;height:auto;max-height:280px}
     .result-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-    .full-text{white-space:pre-wrap;line-height:1.55;color:#dbe7f6}
+    .full-text{white-space:pre-wrap;line-height:1.55;color:var(--text)}
     .truncate{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
     .error{color:#fecaca;background:rgba(248,113,113,.08);padding:10px 12px;border-radius:12px;border:1px solid rgba(248,113,113,.25)}
-    .empty{padding:28px;border:1px dashed var(--line);border-radius:18px;text-align:center;color:var(--muted);background:#0a1220}
+    .empty{padding:28px;border:1px dashed var(--line);border-radius:18px;text-align:center;color:var(--muted);background:var(--input-soft)}
 
     .modal{position:fixed;inset:0;background:rgba(4,8,16,.78);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
     .modal.open{display:flex}
-    .modal-card{max-width:min(92vw,1200px);max-height:92vh;background:#0b1320;border:1px solid var(--line);border-radius:20px;padding:12px;position:relative}
+    .modal-card{max-width:min(92vw,1200px);max-height:92vh;background:var(--input);border:1px solid var(--line);border-radius:20px;padding:12px;position:relative}
     .modal-card img{max-width:100%;max-height:82vh;border-radius:14px;display:block}
     .close{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.08);color:white;border:1px solid var(--line);width:42px;height:42px;border-radius:999px}
 
     .preview-list{display:flex;gap:10px;overflow:auto;padding-top:10px}
-    .preview-item{min-width:70px;width:70px;height:70px;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:#0a1220}
+    .preview-item{min-width:70px;width:70px;height:70px;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:var(--input-soft)}
 
 
     .ratio-box{
-      background:rgba(9,17,32,.86);
-      border:1px solid rgba(148,163,184,.22);
+      background:var(--input-soft);
+      border:1px solid var(--line-soft);
       border-radius:16px;
       overflow:hidden;
       box-shadow:0 18px 40px rgba(0,0,0,.25);
@@ -109,7 +118,7 @@
       padding:14px 16px;
       margin:0;
       cursor:pointer;
-      border-bottom:1px solid rgba(148,163,184,.22);
+      border-bottom:1px solid var(--line-soft);
       font-weight:800;
       text-align:left;
     }
@@ -170,10 +179,30 @@
     .shape-9-16{width:13px;height:22px}
     .shape-16-9{width:22px;height:13px}
 
+
+
+    .topline{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+    .header-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .theme-toggle{display:inline-flex;align-items:center;gap:8px;background:var(--input);color:var(--text);border:1px solid var(--line);box-shadow:none;white-space:nowrap}
+    .theme-toggle .icon{font-size:16px}
+    .tips-strip{margin-top:16px;border:1px solid var(--line-soft);background:var(--input-soft);border-radius:16px;padding:0;overflow:hidden}
+    .tips-strip summary{list-style:none;cursor:pointer;padding:12px 14px;font-weight:800;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .tips-strip summary::-webkit-details-marker{display:none}
+    .tips-strip summary:after{content:"+";font-size:18px;color:var(--muted)}
+    .tips-strip[open] summary:after{content:"−"}
+    .tip-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0 14px 14px}
+    .tip-card{border:1px solid var(--line-soft);background:var(--input);border-radius:14px;padding:10px 12px;color:var(--muted);font-size:12px;line-height:1.45}
+    .tip-card strong{display:block;color:var(--text);font-size:13px;margin-bottom:4px}
+    html[data-theme="light"] .danger{background:#fff1f2;color:#9f1239;border-color:#fecdd3}
+    html[data-theme="light"] .primary{color:#052e16}
+    html[data-theme="light"] .ratio-option.active{background:#eaf2ff;color:#0f172a}
+    html[data-theme="light"] .ratio-option.active .ratio-check{background:#0f172a;border-color:#0f172a;color:#fff}
+    html[data-theme="light"] .shape-original:before{background:#f6f9fd}
     @media (max-width: 1100px){
       .layout{grid-template-columns:1fr}
       .stats{grid-template-columns:repeat(2,1fr)}
       .job-grid{grid-template-columns:1fr}
+      .tip-grid{grid-template-columns:1fr}
     }
     @media (max-width: 640px){
       body{font-size:14px}
@@ -188,20 +217,24 @@
   <div class="container">
     <section class="hero">
       <div class="hero-card hero-main">
-        <h1>SMM AI Engine</h1>
-        <p class="sub">Create image jobs, monitor progress, preview results, download assets, and keep your generation history clean.</p>
+        <div class="topline">
+          <div>
+            <h1>SMM AI Engine</h1>
+            <p class="sub">Create image jobs, monitor progress, preview results, download assets, and keep your generation history clean.</p>
+          </div>
+          <div class="header-actions">
+            <button class="theme-toggle" id="themeToggle" type="button"><span class="icon">🌙</span><span>Dark mode</span></button>
+          </div>
+        </div>
         <div class="stats" id="stats"></div>
-      </div>
-      <div class="hero-card hero-side">
-        <div class="tiny">Quick Tips</div>
-        <ul class="muted" style="padding-left:18px;line-height:1.7;margin:10px 0 0">
-          <li>Choose the AI model before creating a job.</li>
-          <li>Flux2 Klein is available as separate 1, 2, 3, 4, and 5 image workflows; Z-Image img2img uses exactly 2 images; text-to-image uses no images.</li>
-          <li>Use a clear prompt for better results.</li>
-          <li>Choose a preset scale with one click.</li>
-          <li>Click any image to open it full screen.</li>
-          <li>Download the final result after generation.</li>
-        </ul>
+        <details class="tips-strip" id="tipsBox">
+          <summary>Quick tips</summary>
+          <div class="tip-grid">
+            <div class="tip-card"><strong>Model first</strong>Choose Flux2, Z-Image img2img, or text-to-image before creating a job.</div>
+            <div class="tip-card"><strong>Image counts</strong>Flux2 has 1–5 image workflows. Z-Image img2img uses exactly 2 images.</div>
+            <div class="tip-card"><strong>Stable settings</strong>Your selected model and scale stay selected after creating a job.</div>
+          </div>
+        </details>
       </div>
     </section>
 
@@ -331,6 +364,7 @@
     const modelHint = document.getElementById('modelHint');
     const uploadLabel = document.getElementById('uploadLabel');
     const negativePromptWrap = document.getElementById('negativePromptWrap');
+    const themeToggle = document.getElementById('themeToggle');
 
     const MODEL_PRESETS = {
       flux2_klein_1: {
@@ -400,7 +434,38 @@
     ];
 
     let jobs = [];
-    let activeScale = '4-5';
+    let activeScale = localStorage.getItem('smm_active_scale') || '4-5';
+
+
+
+    function applyTheme(theme){
+      const chosen = theme === 'light' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = chosen;
+      localStorage.setItem('smm_theme', chosen);
+      if (themeToggle) {
+        themeToggle.innerHTML = chosen === 'light'
+          ? '<span class="icon">☀️</span><span>Light mode</span>'
+          : '<span class="icon">🌙</span><span>Dark mode</span>';
+      }
+    }
+
+    function saveUiState(){
+      localStorage.setItem('smm_model_key', modelSelect.value);
+      localStorage.setItem('smm_active_scale', activeScale);
+      localStorage.setItem('smm_width', widthInput.value || '1080');
+      localStorage.setItem('smm_height', heightInput.value || '1350');
+      localStorage.setItem('smm_scale_label', scaleLabel.value || '');
+    }
+
+    function restoreUiState(){
+      const savedModel = localStorage.getItem('smm_model_key');
+      if (savedModel && MODEL_PRESETS[savedModel]) modelSelect.value = savedModel;
+      const savedScale = localStorage.getItem('smm_active_scale');
+      if (savedScale && SCALE_PRESETS.some(p => p.key === savedScale)) activeScale = savedScale;
+      if (localStorage.getItem('smm_width')) widthInput.value = localStorage.getItem('smm_width');
+      if (localStorage.getItem('smm_height')) heightInput.value = localStorage.getItem('smm_height');
+      if (localStorage.getItem('smm_scale_label')) scaleLabel.value = localStorage.getItem('smm_scale_label');
+    }
 
     function activeModel(){
       return MODEL_PRESETS[modelSelect.value] || MODEL_PRESETS.flux2_klein_1;
@@ -420,10 +485,6 @@
       if (model.maxImages === 0) {
         uploadInfo.textContent = 'This model uses prompt only · no image upload';
         previewsEl.innerHTML = '';
-        if (activeScale === 'original') {
-          activeScale = '4-5';
-          renderScaleChips();
-        }
       } else {
         uploadInfo.textContent = model.minImages === model.maxImages
           ? `Required: exactly ${model.maxImages} image(s) · jpg/png/webp`
@@ -489,13 +550,17 @@
         widthInput.value = preset.width;
         heightInput.value = preset.height;
       }
+      saveUiState();
     }
 
     function setOriginalSizeFromFirstImage(){
       const file = imageInput.files && imageInput.files[0];
       if (!file) {
-        widthInput.value = 1080;
-        heightInput.value = 1350;
+        // No image selected: keep the user's current/saved size instead of resetting it.
+        widthInput.value = widthInput.value || localStorage.getItem('smm_width') || 1080;
+        heightInput.value = heightInput.value || localStorage.getItem('smm_height') || 1350;
+        scaleLabel.value = `Original (${widthInput.value} × ${heightInput.value})`;
+        saveUiState();
         return;
       }
       const img = new Image();
@@ -503,6 +568,7 @@
         widthInput.value = img.naturalWidth || 1080;
         heightInput.value = img.naturalHeight || 1350;
         scaleLabel.value = `Original (${widthInput.value} × ${heightInput.value})`;
+        saveUiState();
         URL.revokeObjectURL(img.src);
       };
       img.src = URL.createObjectURL(file);
@@ -577,8 +643,10 @@
         createBtn.textContent = 'Create Job';
         return alert(await res.text());
       }
-      form.reset();
-      activeScale = '4-5';
+      // Keep selected model, scale, width and height after creating a job.
+      // Only clear uploaded files so the user can create another job with the same setup.
+      imageInput.value = '';
+      saveUiState();
       updateModelUI();
       renderScaleChips();
       renderPreviews();
@@ -694,14 +762,20 @@
 
     form.addEventListener('submit', createJob);
     imageInput.addEventListener('change', renderPreviews);
-    document.getElementById('resetBtn').addEventListener('click', ()=> { form.reset(); activeScale='4-5'; updateModelUI(); renderScaleChips(); renderPreviews(); });
-    modelSelect.addEventListener('change', ()=> { updateModelUI(); renderPreviews(); });
+    document.getElementById('resetBtn').addEventListener('click', ()=> { form.reset(); activeScale='4-5'; modelSelect.value='flux2_klein_1'; updateModelUI(); renderScaleChips(); renderPreviews(); saveUiState(); });
+    modelSelect.addEventListener('change', ()=> { saveUiState(); updateModelUI(); renderPreviews(); });
     document.getElementById('refreshBtn').addEventListener('click', loadJobs);
     document.getElementById('clearFinishedBtn').addEventListener('click', ()=> clearHistory('finished'));
     document.getElementById('clearAllBtn').addEventListener('click', ()=> clearHistory('all'));
     document.getElementById('closeModal').addEventListener('click', closeModal);
     modal.addEventListener('click', (e)=> { if (e.target === modal) closeModal(); });
     document.addEventListener('keydown', (e)=> { if (e.key === 'Escape') closeModal(); });
+
+    applyTheme(localStorage.getItem('smm_theme') || 'dark');
+    restoreUiState();
+    themeToggle.addEventListener('click', ()=> applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
+    widthInput.addEventListener('input', saveUiState);
+    heightInput.addEventListener('input', saveUiState);
 
     updateModelUI();
     renderScaleChips();
