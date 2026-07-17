@@ -94,6 +94,20 @@ const MODEL_WORKFLOWS = {
     maxImages: 5
   },
 
+  face_swap: {
+    label: 'Face Swap',
+    mode: 'face_swap',
+    workflowFile: () => 'face_swap_api.json',
+    minImages: 2,
+    maxImages: 2,
+    fixedPrompt: true,
+    preserveInputAspect: true,
+    useWorkflowSizing: true,
+    // Website order is Reference first, Your model second.
+    // Workflow node 12 expects body/model; node 13 expects face reference.
+    imageNodeMap: { '12': 1, '13': 0 }
+  },
+
   z_image_base_img2img_2: {
     label: 'Z-Image Base 2-Image Img2Img',
     mode: 'img2img',
@@ -202,18 +216,29 @@ async function resizeForComfy(inputPath, outputPath, job) {
 async function prepareInputImages(job) {
   const comfyFilenames = [];
   const images = job.images || [];
+  const model = getModelConfig(job);
+
   for (let index = 0; index < images.length; index++) {
     const img = images[index];
     const originalExt = path.extname(img.filename) || '.png';
     const rawName = `${job.id}-${index + 1}-raw-${crypto.randomUUID()}${originalExt}`;
-    const processedName = `${job.id}-${index + 1}-fit-${crypto.randomUUID()}.png`;
+    const processedName = `${job.id}-${index + 1}-${model.preserveInputAspect ? 'original' : 'fit'}-${crypto.randomUUID()}.png`;
     const rawPath = path.join(COMFY_INPUT_DIR, rawName);
     const processedPath = path.join(COMFY_INPUT_DIR, processedName);
 
     await downloadToFile(img.url, rawPath);
-    await resizeForComfy(rawPath, processedPath, job);
-    comfyFilenames.push(processedName);
 
+    if (model.preserveInputAspect) {
+      if (!sharp) {
+        throw new Error('Missing dependency: sharp. Run npm.cmd install before starting the worker.');
+      }
+      // Rotate from EXIF and convert to PNG, but preserve the original aspect ratio and dimensions.
+      await sharp(rawPath).rotate().png().toFile(processedPath);
+    } else {
+      await resizeForComfy(rawPath, processedPath, job);
+    }
+
+    comfyFilenames.push(processedName);
     try { fs.unlinkSync(rawPath); } catch {}
   }
   return comfyFilenames;
@@ -221,15 +246,24 @@ async function prepareInputImages(job) {
 
 function patchWorkflowApi(promptApi, job, comfyFilenames) {
   const prompt = JSON.parse(JSON.stringify(promptApi));
+  const model = getModelConfig(job);
   const { width, height } = targetSize(job);
   const largestSize = Math.max(width, height);
   const negativePrompt = job.negativePrompt || 'bad anatomy, deformed body, distorted face, extra fingers, extra arms, extra legs, missing fingers, fused fingers, malformed hands, blurry, low quality, low detail, text, watermark, cropped, duplicate body parts';
   const blendFactor = Math.max(0, Math.min(1, Number(job.blendFactor || 0.2)));
 
   const loadImageNodeIds = sortLoadImageIds(Object.keys(prompt).filter(id => prompt[id]?.class_type === 'LoadImage'));
-  loadImageNodeIds.forEach((id, index) => {
-    if (comfyFilenames[index]) prompt[id].inputs.image = comfyFilenames[index];
-  });
+  if (model.imageNodeMap) {
+    for (const [nodeId, uploadIndex] of Object.entries(model.imageNodeMap)) {
+      if (prompt[nodeId]?.inputs && comfyFilenames[uploadIndex]) {
+        prompt[nodeId].inputs.image = comfyFilenames[uploadIndex];
+      }
+    }
+  } else {
+    loadImageNodeIds.forEach((id, index) => {
+      if (comfyFilenames[index]) prompt[id].inputs.image = comfyFilenames[index];
+    });
+  }
 
   for (const id of Object.keys(prompt)) {
     const node = prompt[id];
@@ -237,22 +271,25 @@ function patchWorkflowApi(promptApi, job, comfyFilenames) {
 
     const title = String(node._meta?.title || '');
 
-    if (node.class_type === 'CLIPTextEncode' && typeof node.inputs.text === 'string') {
-      if (/negative/i.test(title)) {
-        node.inputs.text = negativePrompt;
-      } else {
+    if (!model.fixedPrompt) {
+      if (node.class_type === 'CLIPTextEncode' && typeof node.inputs.text === 'string') {
+        if (/negative/i.test(title)) {
+          node.inputs.text = negativePrompt;
+        } else {
+          node.inputs.text = job.prompt;
+        }
+      } else if (typeof node.inputs.text === 'string') {
         node.inputs.text = job.prompt;
       }
-    } else if (typeof node.inputs.text === 'string') {
-      node.inputs.text = job.prompt;
     }
 
-    // Exact output canvas size. For img2img, this also updates helper latent nodes if present.
-    if (Object.prototype.hasOwnProperty.call(node.inputs, 'width')) node.inputs.width = width;
-    if (Object.prototype.hasOwnProperty.call(node.inputs, 'height')) node.inputs.height = height;
-
-    // Prevent different-sized inputs from being reduced to 1024 when user selected 1080×1920, 1920×1080, etc.
-    if (Object.prototype.hasOwnProperty.call(node.inputs, 'largest_size')) node.inputs.largest_size = largestSize;
+    // Only patch literal numeric canvas values. Preserve linked inputs used by workflows
+    // such as Face Swap, where the output size follows the uploaded model image.
+    if (!model.useWorkflowSizing) {
+      if (Object.prototype.hasOwnProperty.call(node.inputs, 'width') && typeof node.inputs.width === 'number') node.inputs.width = width;
+      if (Object.prototype.hasOwnProperty.call(node.inputs, 'height') && typeof node.inputs.height === 'number') node.inputs.height = height;
+      if (Object.prototype.hasOwnProperty.call(node.inputs, 'largest_size') && typeof node.inputs.largest_size === 'number') node.inputs.largest_size = largestSize;
+    }
 
     // Two-image Z workflow blend control.
     if (node.class_type === 'ImageBlend' && Object.prototype.hasOwnProperty.call(node.inputs, 'blend_factor')) {
@@ -286,7 +323,12 @@ async function runComfy(job) {
   const model = getModelConfig(job);
   await safeApi(`/api/worker/jobs/${job.id}/status`, {
     method: 'POST',
-    body: JSON.stringify({ status: 'processing', progress: job.imageCount ? 'Downloading and fitting input images' : 'Preparing text-to-image workflow' })
+    body: JSON.stringify({
+      status: 'processing',
+      progress: job.imageCount
+        ? (model.preserveInputAspect ? 'Preparing reference and model images' : 'Downloading and fitting input images')
+        : 'Preparing text-to-image workflow'
+    })
   });
 
   const comfyFilenames = await prepareInputImages(job);
@@ -298,7 +340,12 @@ async function runComfy(job) {
 
   await safeApi(`/api/worker/jobs/${job.id}/status`, {
     method: 'POST',
-    body: JSON.stringify({ status: 'processing', progress: `Sending ${model.label} · ${job.width}×${job.height} to ComfyUI` })
+    body: JSON.stringify({
+      status: 'processing',
+      progress: model.useWorkflowSizing
+        ? `Sending ${model.label} to ComfyUI · output follows model image`
+        : `Sending ${model.label} · ${job.width}×${job.height} to ComfyUI`
+    })
   });
 
   const apiWorkflow = JSON.parse(fs.readFileSync(workflowPath, 'utf8'));

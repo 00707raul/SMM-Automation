@@ -1,918 +1,331 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>SMM AI Engine</title>
-  <script>document.documentElement.dataset.theme = localStorage.getItem("smm_theme") || "dark";</script>
   <style>
     :root{
-      --bg:#09111f; --bg2:#0b1322; --card-bg:linear-gradient(180deg,rgba(18,27,43,.98),rgba(16,24,38,.96));
-      --panel:#101826; --panel-2:#151f31; --input:#0b1320; --input-soft:#0a1220; --job-bg:rgba(255,255,255,.025);
-      --line:#273247; --line-soft:rgba(148,163,184,.22); --text:#eef3fb; --muted:#90a0bb; --label:#dce7f8;
-      --green:#4ade80; --green2:#22c55e; --yellow:#fbbf24; --red:#f87171; --blue:#60a5fa; --violet:#8b5cf6;
-      --shadow:0 18px 50px rgba(0,0,0,.28); --radius:20px; color-scheme:dark;
-    }
-    html[data-theme="light"]{
-      --bg:#f5f7fb; --bg2:#eef3fb; --card-bg:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,251,255,.96));
-      --panel:#ffffff; --panel-2:#f1f5fb; --input:#ffffff; --input-soft:#f6f9fd; --job-bg:rgba(15,23,42,.025);
-      --line:#d7e0ee; --line-soft:rgba(100,116,139,.22); --text:#0f172a; --muted:#64748b; --label:#1e293b;
-      --shadow:0 18px 45px rgba(15,23,42,.10); color-scheme:light;
+      --bg:#080b10;--panel:#0f131a;--panel-2:#141922;--panel-3:#191f2a;
+      --line:#252c38;--line-soft:#1d2430;--text:#f5f7fb;--muted:#8f99aa;
+      --accent:#7c6cff;--accent-2:#5d8dff;--accent-soft:rgba(124,108,255,.13);
+      --green:#28d17c;--amber:#ffbd4a;--red:#ff6078;--shadow:0 22px 60px rgba(0,0,0,.34);
+      --radius:18px;--radius-sm:12px;
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);color:var(--text);transition:background .25s ease,color .25s ease}
-    .container{max-width:1380px;margin:0 auto;padding:28px 18px 60px}
-    .hero{display:flex;gap:18px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px}
-    .hero-card{background:var(--card-bg);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:24px;padding:22px;transition:background .25s ease,border-color .25s ease}
-    .hero-main{flex:1 1 100%}
-    .hero-side{display:none}
-    h1{margin:0 0 10px;font-size:34px;line-height:1.08}
-    .sub{color:var(--muted);margin:0}
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
-    .stat{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:16px;padding:14px}
-    .stat .n{font-size:28px;font-weight:800}
-    .stat .l{font-size:12px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.08em}
-
-    .layout{display:grid;grid-template-columns:420px 1fr;gap:18px;align-items:start}
-    .card{background:var(--card-bg);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);transition:background .25s ease,border-color .25s ease}
-    .card .head{padding:18px 18px 0}
-    .card .body{padding:18px}
-    .card h2{margin:0;font-size:20px}
-    .muted{color:var(--muted)}
-    .tiny{font-size:12px;color:var(--muted)}
-
-    .form-grid{display:grid;gap:14px}
-    label{font-size:13px;font-weight:700;color:var(--label);display:block;margin-bottom:7px}
-    input,textarea,select{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--input);color:var(--text);outline:none;transition:background .2s ease,border-color .2s ease,color .2s ease}
-    textarea{resize:vertical;min-height:120px}
-    .upload{border:1.5px dashed color-mix(in srgb,var(--blue) 45%,var(--line));background:var(--input-soft);border-radius:18px;padding:16px;text-align:center}
-    .upload input{background:transparent;border:none;padding:0;margin-top:8px}
-    .chips{display:flex;flex-wrap:wrap;gap:10px}
-    .chip{border:1px solid var(--line);background:var(--input);color:var(--text);padding:10px 12px;border-radius:999px;cursor:pointer;font-size:13px;transition:.2s}
-    .chip.active{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.45);color:#d9ffe7}
-    .chip small{display:block;color:var(--muted)}
-    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .actions{display:flex;gap:10px;flex-wrap:wrap}
-    button{border:none;border-radius:14px;padding:12px 16px;font-weight:800;cursor:pointer;transition:.2s}
-    .primary{background:linear-gradient(180deg,var(--green),var(--green2));color:#06270f}
-    .secondary{background:var(--input);color:var(--text);border:1px solid var(--line)}
-    .danger{background:#301318;color:#ffd7d7;border:1px solid #5b252e}
-    button:hover{transform:translateY(-1px)}
-    button:disabled{opacity:.6;cursor:not-allowed;transform:none}
-
-    .toolbar{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-    .toolbar .left,.toolbar .right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .pill{padding:8px 12px;border-radius:999px;background:var(--input);border:1px solid var(--line);font-size:13px;color:var(--muted)}
-
-    .jobs{display:grid;gap:14px}
-    .job{background:var(--job-bg);border:1px solid var(--line);border-radius:18px;padding:16px;display:grid;gap:14px}
-    .job-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
-    .status{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
-    .status .dot{width:9px;height:9px;border-radius:999px;background:currentColor}
-    .status.queued{background:rgba(251,191,36,.12);color:var(--yellow)}
-    .status.processing{background:rgba(96,165,250,.12);color:var(--blue)}
-    .status.completed{background:rgba(74,222,128,.12);color:var(--green)}
-    .status.failed{background:rgba(248,113,113,.12);color:var(--red)}
-
-    .progress-wrap{display:grid;gap:8px}
-    .progress-bar{height:10px;border-radius:999px;background:var(--input-soft);border:1px solid var(--line);overflow:hidden}
-    .progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#60a5fa,#4ade80);width:0%;transition:width .6s ease}
-    .job-meta{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px}
-    .job-grid{display:grid;grid-template-columns:1fr 260px;gap:14px}
-    .thumbs{display:flex;gap:10px;flex-wrap:wrap}
-    .thumbs img,.result-card img{width:88px;height:88px;object-fit:cover;border-radius:14px;border:1px solid var(--line);cursor:pointer;background:var(--input-soft)}
-    .result-card{background:var(--input);border:1px solid var(--line);border-radius:16px;padding:12px}
-    .result-card img{width:100%;height:auto;max-height:280px}
-    .result-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-    .full-text{white-space:pre-wrap;line-height:1.55;color:var(--text)}
-    .truncate{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-    .error{color:#fecaca;background:rgba(248,113,113,.08);padding:10px 12px;border-radius:12px;border:1px solid rgba(248,113,113,.25)}
-    .empty{padding:28px;border:1px dashed var(--line);border-radius:18px;text-align:center;color:var(--muted);background:var(--input-soft)}
-
-    .modal{position:fixed;inset:0;background:rgba(4,8,16,.78);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
-    .modal.open{display:flex}
-    .modal-card{max-width:min(92vw,1200px);max-height:92vh;background:var(--input);border:1px solid var(--line);border-radius:20px;padding:12px;position:relative}
-    .modal-card img{max-width:100%;max-height:82vh;border-radius:14px;display:block}
-    .close{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.08);color:white;border:1px solid var(--line);width:42px;height:42px;border-radius:999px}
-
-    .prompt-ai-panel{border:1px solid var(--line);border-radius:18px;background:var(--input-soft);overflow:hidden}
-    .prompt-ai-panel summary{cursor:pointer;padding:14px 16px;font-weight:900;display:flex;align-items:center;justify-content:space-between}
-    .prompt-ai-panel summary::after{content:'AI';font-size:11px;letter-spacing:.08em;color:var(--green);border:1px solid rgba(74,222,128,.35);padding:4px 8px;border-radius:999px}
-    .prompt-ai-inner{padding:0 16px 16px;display:grid;gap:12px}
-    .prompt-ai-actions{display:flex;gap:10px;flex-wrap:wrap}
-    .prompt-ai-status{font-size:12px;color:var(--muted);min-height:18px}
-    .prompt-ai-status.good{color:var(--green)}
-    .prompt-ai-status.bad{color:var(--red)}
-    .prompt-ai-notes{display:none;border:1px solid var(--line-soft);border-radius:14px;background:var(--input);padding:12px}
-    .prompt-ai-notes.show{display:block}
-    .prompt-ai-notes ul{margin:8px 0 0 18px;padding:0;color:var(--muted);line-height:1.5}
-    .mini-textarea{min-height:82px}
-
-    .preview-list{display:flex;gap:10px;overflow:auto;padding-top:10px}
-    .preview-item{min-width:70px;width:70px;height:70px;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:var(--input-soft)}
-
-
-    .ratio-box{
-      background:var(--input-soft);
-      border:1px solid var(--line-soft);
-      border-radius:16px;
-      overflow:hidden;
-      box-shadow:0 18px 40px rgba(0,0,0,.25);
-    }
-    .ratio-option{
-      width:100%;
-      border:0;
-      border-radius:0;
-      background:transparent;
-      color:var(--text);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:14px 16px;
-      margin:0;
-      cursor:pointer;
-      border-bottom:1px solid var(--line-soft);
-      font-weight:800;
-      text-align:left;
-    }
-    .ratio-option:last-child{border-bottom:0}
-    .ratio-option .ratio-left{display:flex;align-items:center;gap:12px}
-    .ratio-option .ratio-name{font-size:14px}
-    .ratio-option .ratio-sub{font-size:11px;color:var(--muted);font-weight:700;margin-top:2px}
-    .ratio-option .ratio-check{
-      width:22px;
-      height:22px;
-      border-radius:6px;
-      border:2px solid rgba(203,213,225,.65);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#08111f;
-      font-size:14px;
-      line-height:1;
-    }
-    .ratio-option.active{
-      background:rgba(96,165,250,.14);
-      color:#ffffff;
-    }
-    .ratio-option.active .ratio-check{
-      background:#f8fafc;
-      border-color:#f8fafc;
-    }
-    .ratio-icon{
-      width:26px;
-      height:26px;
-      border-radius:9px;
-      border:1px solid rgba(148,163,184,.35);
-      display:grid;
-      place-items:center;
-      color:#b8c6dc;
-      font-size:14px;
-      background:rgba(255,255,255,.04);
-    }
-    .ratio-shape{
-      border:2px solid currentColor;
-      border-radius:5px;
-      display:inline-block;
-      opacity:.9;
-    }
-    .shape-original{width:17px;height:17px;position:relative}
-    .shape-original:before{
-      content:"";
-      position:absolute;
-      width:8px;height:8px;
-      border:2px solid currentColor;
-      border-radius:4px;
-      left:-8px;top:8px;
-      opacity:.7;
-      background:rgba(9,17,32,.9);
-    }
-    .shape-1-1{width:18px;height:18px}
-    .shape-4-5{width:16px;height:20px}
-    .shape-9-16{width:13px;height:22px}
-    .shape-16-9{width:22px;height:13px}
-
-
-
-    .topline{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
-    .header-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .theme-toggle{display:inline-flex;align-items:center;gap:8px;background:var(--input);color:var(--text);border:1px solid var(--line);box-shadow:none;white-space:nowrap}
-    .theme-toggle .icon{font-size:16px}
-    .tips-strip{margin-top:16px;border:1px solid var(--line-soft);background:var(--input-soft);border-radius:16px;padding:0;overflow:hidden}
-    .tips-strip summary{list-style:none;cursor:pointer;padding:12px 14px;font-weight:800;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .tips-strip summary::-webkit-details-marker{display:none}
-    .tips-strip summary:after{content:"+";font-size:18px;color:var(--muted)}
-    .tips-strip[open] summary:after{content:"−"}
-    .tip-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0 14px 14px}
-    .tip-card{border:1px solid var(--line-soft);background:var(--input);border-radius:14px;padding:10px 12px;color:var(--muted);font-size:12px;line-height:1.45}
-    .tip-card strong{display:block;color:var(--text);font-size:13px;margin-bottom:4px}
-    html[data-theme="light"] .danger{background:#fff1f2;color:#9f1239;border-color:#fecdd3}
-    html[data-theme="light"] .primary{color:#052e16}
-    html[data-theme="light"] .ratio-option.active{background:#eaf2ff;color:#0f172a}
-    html[data-theme="light"] .ratio-option.active .ratio-check{background:#0f172a;border-color:#0f172a;color:#fff}
-    html[data-theme="light"] .shape-original:before{background:#f6f9fd}
-    @media (max-width: 1100px){
-      .layout{grid-template-columns:1fr}
-      .stats{grid-template-columns:repeat(2,1fr)}
-      .job-grid{grid-template-columns:1fr}
-      .tip-grid{grid-template-columns:1fr}
-    }
-    @media (max-width: 640px){
-      body{font-size:14px}
-      .container{padding:16px 12px 50px}
-      .stats{grid-template-columns:1fr 1fr}
-      .row-2{grid-template-columns:1fr}
-      h1{font-size:28px}
-    }
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+    body{font-size:14px;overflow-x:hidden}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    .app{min-height:100vh;display:flex;flex-direction:column}
+    .topbar{height:68px;padding:0 22px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;background:rgba(8,11,16,.94);backdrop-filter:blur(18px);position:sticky;top:0;z-index:20}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.01em;font-size:18px}
+    .brand-mark{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 10px 24px rgba(93,141,255,.28)}
+    .brand small{display:block;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+    .top-actions{display:flex;align-items:center;gap:10px}
+    .connection{display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px;background:var(--panel)}
+    .connection-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 12px rgba(40,209,124,.7)}
+    .dashboard{display:grid;grid-template-columns:350px minmax(460px,1fr) 360px;gap:14px;padding:14px;min-height:calc(100vh - 68px)}
+    .column{min-width:0;display:flex;flex-direction:column;gap:14px}
+    .panel{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+    .panel-head{padding:16px 17px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .panel-head h2,.panel-head h3{margin:0;font-size:14px;letter-spacing:.01em}
+    .panel-body{padding:16px}
+    .section-label{font-size:11px;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);font-weight:900;margin:0 0 9px}
+    .field{margin-bottom:15px}
+    .field:last-child{margin-bottom:0}
+    label{display:block;font-size:12px;font-weight:800;color:#dce2eb;margin-bottom:8px}
+    select,input[type=text],input[type=number],textarea{width:100%;border:1px solid var(--line);background:var(--panel-2);color:var(--text);border-radius:12px;padding:11px 12px;outline:none;transition:.18s ease}
+    select:focus,input:focus,textarea:focus{border-color:rgba(124,108,255,.8);box-shadow:0 0 0 3px rgba(124,108,255,.12)}
+    textarea{resize:vertical;min-height:112px;line-height:1.5}
+    .hint{font-size:11px;line-height:1.5;color:var(--muted);margin-top:7px}
+    .workflow-note{border:1px solid var(--line-soft);background:var(--panel-2);border-radius:12px;padding:11px 12px;color:var(--muted);font-size:12px;line-height:1.5}
+    .workflow-note strong{color:var(--text)}
+    .upload-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .upload-grid.one{grid-template-columns:1fr}
+    .upload-slot{min-height:142px;border:1px dashed #3a4352;border-radius:15px;background:var(--panel-2);padding:12px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow:hidden;transition:.18s ease;color:var(--muted)}
+    .upload-slot:hover,.upload-slot.drag{border-color:var(--accent);background:var(--accent-soft);transform:translateY(-1px)}
+    .upload-slot.has-file{border-style:solid;border-color:#394356;padding:0}
+    .upload-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .upload-slot .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,8,12,.08),rgba(6,8,12,.82));z-index:1}
+    .upload-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px}
+    .upload-icon{width:34px;height:34px;border-radius:10px;border:1px solid #3b4555;display:grid;place-items:center;background:rgba(8,11,16,.72);font-size:17px}
+    .upload-title{color:var(--text);font-weight:900;font-size:12px}
+    .upload-sub{font-size:10px;line-height:1.35;color:#a5afbd}
+    .upload-index{position:absolute;left:8px;top:8px;z-index:3;width:23px;height:23px;border-radius:8px;background:rgba(8,11,16,.82);display:grid;place-items:center;font-size:10px;font-weight:900;border:1px solid rgba(255,255,255,.12)}
+    .remove-file{position:absolute;right:8px;top:8px;z-index:4;width:27px;height:27px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(8,11,16,.82);color:#fff;display:none}
+    .upload-slot.has-file .remove-file{display:grid;place-items:center}
+    .ratio-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+    .ratio-btn{border:1px solid var(--line);background:var(--panel-2);color:var(--muted);border-radius:11px;padding:9px 5px;font-size:10px;font-weight:800;transition:.18s ease}
+    .ratio-btn.active{color:#fff;border-color:var(--accent);background:var(--accent-soft)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .btn-row{display:flex;gap:9px;flex-wrap:wrap}
+    .btn{border:1px solid var(--line);border-radius:12px;padding:11px 14px;font-weight:900;color:var(--text);background:var(--panel-2);transition:.18s ease;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+    .btn:hover{transform:translateY(-1px);border-color:#404a59}
+    .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent;box-shadow:0 12px 26px rgba(93,141,255,.22)}
+    .btn.primary:disabled{opacity:.55;cursor:not-allowed;transform:none}
+    .btn.danger{color:#ff9bab;border-color:rgba(255,96,120,.25);background:rgba(255,96,120,.07)}
+    .btn.small{padding:8px 10px;border-radius:10px;font-size:11px}
+    .create-btn{width:100%;padding:13px 16px}
+    .fixed-workflow{display:none;border:1px solid rgba(124,108,255,.25);background:var(--accent-soft);border-radius:13px;padding:12px;color:#c8c2ff;font-size:12px;line-height:1.5}
+    .fixed-workflow.show{display:block}
+    .center-panel{min-height:calc(100vh - 96px);display:flex;flex-direction:column}
+    .workspace-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .workspace-head .left{display:flex;align-items:center;gap:10px}
+    .pill{border:1px solid var(--line);background:var(--panel-2);border-radius:999px;padding:7px 10px;color:var(--muted);font-size:11px;font-weight:800}
+    .workspace{flex:1;min-height:440px;padding:18px;display:flex;align-items:center;justify-content:center;position:relative;background:
+      radial-gradient(circle at 50% 35%,rgba(124,108,255,.08),transparent 35%),
+      linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+      background-size:auto,28px 28px,28px 28px}
+    .empty-state{text-align:center;max-width:390px;color:var(--muted)}
+    .empty-icon{width:66px;height:66px;border-radius:22px;margin:0 auto 16px;display:grid;place-items:center;background:var(--panel-2);border:1px solid var(--line);font-size:26px;color:#a99fff}
+    .empty-state h3{margin:0 0 8px;color:var(--text);font-size:18px}.empty-state p{margin:0;line-height:1.6}
+    .active-stage{width:min(100%,760px);display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+    .stage-image{background:#090c11;border:1px solid var(--line);border-radius:16px;min-height:360px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+    .stage-image img{max-width:100%;max-height:64vh;object-fit:contain;display:block}
+    .stage-placeholder{color:var(--muted);text-align:center;padding:40px}
+    .loader{width:44px;height:44px;border-radius:50%;border:3px solid #252d39;border-top-color:var(--accent);animation:spin 1s linear infinite;margin:0 auto 14px}@keyframes spin{to{transform:rotate(360deg)}}
+    .active-meta{border:1px solid var(--line);background:rgba(15,19,26,.92);border-radius:14px;padding:13px}
+    .active-meta-top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
+    .status{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.status:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
+    .status.processing:before{background:var(--accent-2);box-shadow:0 0 12px rgba(93,141,255,.7)}.status.queued:before{background:var(--amber)}.status.completed:before{background:var(--green)}.status.failed:before{background:var(--red)}
+    .progress-track{height:7px;border-radius:999px;background:#222936;overflow:hidden}.progress-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .35s ease}
+    .progress-copy{display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;font-size:11px;color:var(--muted)}
+    .history{border-top:1px solid var(--line-soft);max-height:330px;overflow:auto}
+    .history-toolbar{padding:12px 15px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line-soft);position:sticky;top:0;background:var(--panel);z-index:2}
+    .history-list{padding:9px}
+    .job-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:11px;align-items:center;padding:10px;border:1px solid transparent;border-radius:12px;transition:.18s ease}
+    .job-row:hover{background:var(--panel-2);border-color:var(--line-soft)}
+    .job-thumb{width:48px;height:48px;border-radius:11px;object-fit:cover;background:var(--panel-3);border:1px solid var(--line)}
+    .job-title{font-weight:900;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.job-sub{font-size:10px;color:var(--muted);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .right-ai{position:sticky;top:82px}
+    .ai-hero{padding:16px;background:linear-gradient(145deg,rgba(124,108,255,.12),rgba(93,141,255,.04));border-bottom:1px solid var(--line-soft)}
+    .ai-title{display:flex;align-items:center;gap:10px;font-weight:900}.ai-orb{width:35px;height:35px;border-radius:13px;background:linear-gradient(135deg,var(--accent),#b55cff);display:grid;place-items:center;box-shadow:0 10px 24px rgba(124,108,255,.24)}
+    .ai-status{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
+    .ai-disabled{display:none;padding:16px;border:1px solid rgba(124,108,255,.23);background:var(--accent-soft);border-radius:13px;color:#c8c2ff;line-height:1.55}
+    .ai-disabled.show{display:block}.ai-controls.hidden{display:none}
+    .ai-notes{display:none;border:1px solid var(--line);background:var(--panel-2);border-radius:12px;padding:11px;margin-top:12px}.ai-notes.show{display:block}.ai-notes ul{margin:7px 0 0 17px;padding:0;color:var(--muted);font-size:11px;line-height:1.5}
+    .ai-message{min-height:18px;font-size:11px;margin-top:10px;color:var(--muted)}.ai-message.good{color:var(--green)}.ai-message.bad{color:var(--red)}
+    .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:var(--panel-2);border:1px solid var(--line-soft);border-radius:12px;padding:10px}.stat strong{display:block;font-size:18px}.stat span{color:var(--muted);font-size:10px}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;padding:26px;z-index:50}.modal.open{display:flex}.modal-card{max-width:95vw;max-height:92vh;position:relative}.modal img{max-width:95vw;max-height:88vh;border-radius:15px;box-shadow:var(--shadow)}.modal-close{position:absolute;right:-10px;top:-10px;width:36px;height:36px;border-radius:12px;border:1px solid #3b4452;background:#10151d;color:#fff}
+    .hidden{display:none!important}
+    @media(max-width:1320px){.dashboard{grid-template-columns:330px minmax(420px,1fr)}.right-col{grid-column:1/-1}.right-ai{position:static}.right-col .panel{max-width:none}.ai-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}.ai-controls .field,.ai-controls .btn-row,.ai-controls .ai-message,.ai-controls .ai-notes{grid-column:auto}.ai-controls .btn-row,.ai-controls .ai-message,.ai-controls .ai-notes{grid-column:1/-1}}
+    @media(max-width:900px){.dashboard{grid-template-columns:1fr}.center-col,.right-col{grid-column:1}.center-panel{min-height:auto}.right-ai{position:static}.ai-controls{display:block}.upload-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:520px){.topbar{padding:0 12px}.connection{display:none}.dashboard{padding:9px;gap:9px}.upload-grid,.row{grid-template-columns:1fr}.ratio-grid{grid-template-columns:repeat(2,1fr)}.workspace{min-height:360px}.job-row{grid-template-columns:44px minmax(0,1fr)}.job-row .job-actions{grid-column:1/-1}.brand small{display:none}}
   </style>
 </head>
 <body>
-  <div class="container">
-    <section class="hero">
-      <div class="hero-card hero-main">
-        <div class="topline">
-          <div>
-            <h1>SMM AI Engine</h1>
-            <p class="sub">Create image jobs, monitor progress, preview results, download assets, and keep your generation history clean.</p>
-          </div>
-          <div class="header-actions">
-            <button class="theme-toggle" id="themeToggle" type="button"><span class="icon">🌙</span><span>Dark mode</span></button>
-          </div>
-        </div>
-        <div class="stats" id="stats"></div>
-        <details class="tips-strip" id="tipsBox">
-          <summary>Quick tips</summary>
-          <div class="tip-grid">
-            <div class="tip-card"><strong>Model first</strong>Choose Flux2, Z-Image img2img, or text-to-image before creating a job.</div>
-            <div class="tip-card"><strong>Image counts</strong>Flux2 has 1–5 image workflows. Z-Image img2img uses exactly 2 images.</div>
-            <div class="tip-card"><strong>Stable settings</strong>Your selected model and scale stay selected after creating a job.</div>
-          </div>
-        </details>
-      </div>
-    </section>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">✦</div><div>SMM AI Engine<small>Local ComfyUI Studio</small></div></div>
+    <div class="top-actions"><div class="connection"><span class="connection-dot"></span><span id="connectionText">Connected</span></div><button class="btn small" id="refreshBtn" type="button">↻ Refresh</button></div>
+  </header>
 
-    <section class="layout">
-      <div class="card">
-        <div class="head"><h2>Create New Job</h2></div>
-        <div class="body">
-          <form id="jobForm" class="form-grid">
-            <div>
-              <label>AI model / workflow</label>
-              <select id="modelKey" name="modelKey">
-                <option value="flux2_klein_1">Flux2 Klein 4B — 1 Image</option>
-                <option value="flux2_klein_2">Flux2 Klein 4B — 2 Images</option>
-                <option value="flux2_klein_3">Flux2 Klein 4B — 3 Images</option>
-                <option value="flux2_klein_4">Flux2 Klein 4B — 4 Images</option>
-                <option value="flux2_klein_5">Flux2 Klein 4B — 5 Images</option>
-                <option value="z_image_base_img2img_2">Z-Image Base Img2Img — 2 images</option>
-                <option value="z_image_base_t2i">Z-Image Base Text-to-Image — no image</option>
-              </select>
-              <div id="modelHint" class="tiny" style="margin-top:8px"></div>
+  <main class="dashboard">
+    <aside class="column left-col">
+      <section class="panel">
+        <div class="panel-head"><h2>Generation Settings</h2><span class="pill" id="modelModePill">Image</span></div>
+        <div class="panel-body">
+          <form id="jobForm">
+            <div class="field">
+              <label for="modelKey">Workflow / model</label>
+              <select id="modelKey" name="modelKey"></select>
+              <div class="hint" id="modelHint"></div>
             </div>
 
-            <div>
-              <label id="uploadLabel">Upload reference images</label>
-              <div class="upload">
-                <div class="muted">Drag concept/product images here or choose files.</div>
-                <input id="imagesInput" type="file" name="images" multiple accept="image/*" required />
-                <div id="uploadInfo" class="tiny">Max 5 images · jpg/png/webp</div>
-                <div id="previews" class="preview-list"></div>
+            <div class="field" id="uploadSection">
+              <div class="section-label">Input images</div>
+              <div class="upload-grid" id="uploadGrid"></div>
+              <div class="hint" id="uploadHint"></div>
+            </div>
+
+            <div class="fixed-workflow" id="fixedWorkflow">This workflow is fully configured inside ComfyUI. Upload both images and run it—no prompt is required.</div>
+
+            <div class="field" id="promptWrap">
+              <label for="prompt">Hand-made prompt</label>
+              <textarea id="prompt" name="prompt">Create a premium commercial social media advertising image. Keep product identity clean and professional.</textarea>
+            </div>
+
+            <div class="field hidden" id="negativePromptWrap">
+              <label for="negativePrompt">Negative prompt</label>
+              <textarea id="negativePrompt" name="negativePrompt">bad anatomy, deformed body, distorted face, extra fingers, extra arms, extra legs, missing fingers, fused fingers, malformed hands, blurry, low quality, low detail, text, watermark, cropped, duplicate body parts</textarea>
+            </div>
+
+            <div class="field" id="sizeSection">
+              <div class="section-label">Output</div>
+              <div class="ratio-grid" id="ratioGrid"></div>
+              <div class="row" style="margin-top:10px">
+                <div><label for="widthInput">Width</label><input id="widthInput" type="number" min="256" value="1080" /></div>
+                <div><label for="heightInput">Height</label><input id="heightInput" type="number" min="256" value="1350" /></div>
               </div>
             </div>
 
-            <details class="prompt-ai-panel" id="promptAiPanel" open>
-              <summary>Prompt AI / Super Prompt</summary>
-              <div class="prompt-ai-inner">
-                <div>
-                  <label>Saved Prompt AI instruction</label>
-                  <textarea id="promptAiInstruction" class="mini-textarea" rows="4"></textarea>
-                  <div class="tiny" style="margin-top:8px">Saved in this browser. It stays after refresh and is sent with every super-prompt request.</div>
-                </div>
-                <div>
-                  <label>Short idea / quick prompt</label>
-                  <textarea id="promptAiShort" class="mini-textarea" rows="3" placeholder="Example: Chito Gvrito bottle in Baku seaside premium commercial ad"></textarea>
-                </div>
-                <div class="prompt-ai-actions">
-                  <button class="secondary" type="button" id="savePromptAiBtn">Save Instruction</button>
-                  <button class="secondary" type="button" id="generatePromptBtn">Generate Super Prompt</button>
-                  <button class="primary" type="button" id="generatePromptAndJobBtn">Generate Prompt + Create Job</button>
-                </div>
-                <div id="promptAiStatus" class="prompt-ai-status"></div>
-                <div id="promptAiNotes" class="prompt-ai-notes"></div>
-              </div>
-            </details>
-
-            <div>
-              <label>Prompt</label>
-              <textarea name="prompt" rows="6">Create a premium commercial social media advertising image. Keep product identity clean and professional.</textarea>
+            <div class="field hidden" id="workflowSizeInfo">
+              <div class="workflow-note"><strong>Output sizing:</strong> follows the dimensions and composition of <strong>Your model</strong> image.</div>
             </div>
 
-            <div id="negativePromptWrap" style="display:none">
-              <label>Negative prompt</label>
-              <textarea name="negativePrompt" rows="4">bad anatomy, deformed body, distorted face, extra fingers, extra arms, extra legs, missing fingers, fused fingers, malformed hands, blurry, low quality, low detail, text, watermark, cropped, duplicate body parts</textarea>
-              <div class="tiny" style="margin-top:8px">Used by Z-Image Base Text-to-Image.</div>
+            <div class="field">
+              <label for="platform">Platform</label>
+              <select id="platform"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="facebook">Facebook</option><option value="general">General</option></select>
             </div>
 
-            <input type="hidden" name="blendFactor" id="blendFactor" value="0.2" />
-
-            <div class="row-2">
-              <div>
-                <label>Platform</label>
-                <select name="platform">
-                  <option value="instagram">Instagram</option>
-                  <option value="tiktok">TikTok</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="general">General</option>
-                </select>
-              </div>
-              <div>
-                <label>Scale preset</label>
-                <input id="scaleLabel" name="scaleLabel" placeholder="Chosen automatically" readonly />
-              </div>
-            </div>
-
-            <div>
-              <label>Image scale / aspect ratio</label>
-              <div class="ratio-box" id="scaleChips"></div>
-              <div class="tiny" style="margin-top:8px">Choose Original to use the first uploaded image size, or select a fixed social media ratio.</div>
-            </div>
-
-            <div class="row-2">
-              <div>
-                <label>Width</label>
-                <input name="width" id="widthInput" type="number" min="256" step="1" value="1080" />
-              </div>
-              <div>
-                <label>Height</label>
-                <input name="height" id="heightInput" type="number" min="256" step="1" value="1350" />
-              </div>
-            </div>
-
-            <div class="actions">
-              <button class="primary" id="createBtn" type="submit">Create Job</button>
-              <button class="secondary" type="button" id="resetBtn">Reset</button>
-            </div>
+            <input type="hidden" id="scaleLabel" value="4:5 Portrait" />
+            <input type="hidden" id="blendFactor" value="0.2" />
+            <div class="btn-row"><button class="btn primary create-btn" id="createBtn" type="submit">Generate</button><button class="btn" id="resetBtn" type="button">Reset</button></div>
           </form>
         </div>
-      </div>
+      </section>
+    </aside>
 
-      <div class="card">
-        <div class="body">
-          <div class="toolbar">
-            <div class="left">
-              <div class="pill" id="jobCountPill">0 jobs</div>
-              <div class="pill" id="avgTimePill">Avg time: --</div>
-            </div>
-            <div class="right">
-              <button class="secondary" id="refreshBtn">Refresh</button>
-              <button class="secondary" id="clearFinishedBtn">Clean Finished</button>
-              <button class="danger" id="clearAllBtn">Clear All History</button>
-            </div>
-          </div>
-          <div class="jobs" id="jobs"></div>
+    <section class="column center-col">
+      <section class="panel center-panel">
+        <div class="panel-head workspace-head"><div class="left"><h2>Working Progress</h2><span class="pill" id="jobCountPill">0 jobs</span></div><span class="pill" id="avgTimePill">Avg --</span></div>
+        <div class="workspace" id="workspace"></div>
+        <div class="history">
+          <div class="history-toolbar"><strong>Generation History</strong><div class="btn-row"><button class="btn small" id="clearFinishedBtn" type="button">Clean finished</button><button class="btn small danger" id="clearAllBtn" type="button">Clear all</button></div></div>
+          <div class="history-list" id="jobs"></div>
         </div>
-      </div>
+      </section>
     </section>
-  </div>
 
-  <div class="modal" id="imageModal">
-    <div class="modal-card">
-      <button class="close" id="closeModal">✕</button>
-      <img id="modalImage" alt="Preview" />
-    </div>
-  </div>
-
-  <script>
-    const form = document.getElementById('jobForm');
-    const jobsEl = document.getElementById('jobs');
-    const previewsEl = document.getElementById('previews');
-    const imageInput = document.getElementById('imagesInput');
-    const uploadInfo = document.getElementById('uploadInfo');
-    const createBtn = document.getElementById('createBtn');
-    const widthInput = document.getElementById('widthInput');
-    const heightInput = document.getElementById('heightInput');
-    const scaleLabel = document.getElementById('scaleLabel');
-    const statsEl = document.getElementById('stats');
-    const modal = document.getElementById('imageModal');
-    const modalImage = document.getElementById('modalImage');
-    const modelSelect = document.getElementById('modelKey');
-    const modelHint = document.getElementById('modelHint');
-    const uploadLabel = document.getElementById('uploadLabel');
-    const negativePromptWrap = document.getElementById('negativePromptWrap');
-    const themeToggle = document.getElementById('themeToggle');
-    const promptAiInstruction = document.getElementById('promptAiInstruction');
-    const promptAiShort = document.getElementById('promptAiShort');
-    const promptAiStatus = document.getElementById('promptAiStatus');
-    const promptAiNotes = document.getElementById('promptAiNotes');
-    const generatePromptBtn = document.getElementById('generatePromptBtn');
-    const generatePromptAndJobBtn = document.getElementById('generatePromptAndJobBtn');
-    const savePromptAiBtn = document.getElementById('savePromptAiBtn');
-    const promptInput = form.elements.prompt;
-    const negativePromptInput = form.elements.negativePrompt;
-
-    const DEFAULT_PROMPT_AI_INSTRUCTION = `You are a professional AI image prompt engineer for SMM advertising.
-Create accurate, premium, visually attractive image prompts.
-Preserve product identity, bottle shape, labels, logos, packaging, colors and important details when a product is involved.
-Improve composition, lighting, background, realism, cinematic quality and commercial appeal.
-Do not overcomplicate the output. Keep the prompt useful for image generation, not a long article.
-Generate a strong negative prompt when the selected image model supports or benefits from it.
-Return strict JSON only.`;
-
-    const MODEL_PRESETS = {
-      flux2_klein_1: {
-        key: 'flux2_klein_1',
-        label: 'Flux2 Klein 4B — 1 Image',
-        hint: 'Restored Flux2 workflow: upload exactly 1 image.',
-        minImages: 1,
-        maxImages: 1,
-        usesNegative: false
-      },
-      flux2_klein_2: {
-        key: 'flux2_klein_2',
-        label: 'Flux2 Klein 4B — 2 Images',
-        hint: 'Restored Flux2 workflow: upload exactly 2 images.',
-        minImages: 2,
-        maxImages: 2,
-        usesNegative: false
-      },
-      flux2_klein_3: {
-        key: 'flux2_klein_3',
-        label: 'Flux2 Klein 4B — 3 Images',
-        hint: 'Restored Flux2 workflow: upload exactly 3 images.',
-        minImages: 3,
-        maxImages: 3,
-        usesNegative: false
-      },
-      flux2_klein_4: {
-        key: 'flux2_klein_4',
-        label: 'Flux2 Klein 4B — 4 Images',
-        hint: 'Restored Flux2 workflow: upload exactly 4 images.',
-        minImages: 4,
-        maxImages: 4,
-        usesNegative: false
-      },
-      flux2_klein_5: {
-        key: 'flux2_klein_5',
-        label: 'Flux2 Klein 4B — 5 Images',
-        hint: 'Restored Flux2 workflow: upload exactly 5 images.',
-        minImages: 5,
-        maxImages: 5,
-        usesNegative: false
-      },
-      z_image_base_img2img_2: {
-        key: 'z_image_base_img2img_2',
-        label: 'Z-Image Base 2-Image Img2Img',
-        hint: 'Upload exactly 2 images: first = starter/base, second = detail/reference.',
-        minImages: 2,
-        maxImages: 2,
-        usesNegative: false
-      },
-      z_image_base_t2i: {
-        key: 'z_image_base_t2i',
-        label: 'Z-Image Base Text-to-Image',
-        hint: 'Prompt-only generation. No uploaded image is needed. Negative prompt is enabled.',
-        minImages: 0,
-        maxImages: 0,
-        usesNegative: true
-      }
-    };
-
-    const SCALE_PRESETS = [
-      { key:'original', label:'Original', size:'Use first image size', width:null, height:null, shape:'original' },
-      { key:'1-1', label:'1:1', size:'Square · 1080 × 1080', width:1080, height:1080, shape:'1-1' },
-      { key:'4-5', label:'4:5', size:'Instagram portrait · 1080 × 1350', width:1080, height:1350, shape:'4-5' },
-      { key:'9-16', label:'9:16', size:'Story / TikTok · 1080 × 1920', width:1080, height:1920, shape:'9-16' },
-      { key:'16-9', label:'16:9', size:'Landscape · 1920 × 1080', width:1920, height:1080, shape:'16-9' }
-    ];
-
-    let jobs = [];
-    let activeScale = localStorage.getItem('smm_active_scale') || '4-5';
-
-
-
-    function applyTheme(theme){
-      const chosen = theme === 'light' ? 'light' : 'dark';
-      document.documentElement.dataset.theme = chosen;
-      localStorage.setItem('smm_theme', chosen);
-      if (themeToggle) {
-        themeToggle.innerHTML = chosen === 'light'
-          ? '<span class="icon">☀️</span><span>Light mode</span>'
-          : '<span class="icon">🌙</span><span>Dark mode</span>';
-      }
-    }
-
-    function saveUiState(){
-      localStorage.setItem('smm_model_key', modelSelect.value);
-      localStorage.setItem('smm_active_scale', activeScale);
-      localStorage.setItem('smm_width', widthInput.value || '1080');
-      localStorage.setItem('smm_height', heightInput.value || '1350');
-      localStorage.setItem('smm_scale_label', scaleLabel.value || '');
-      localStorage.setItem('smm_prompt_ai_short', promptAiShort.value || '');
-    }
-
-    function restoreUiState(){
-      const savedModel = localStorage.getItem('smm_model_key');
-      if (savedModel && MODEL_PRESETS[savedModel]) modelSelect.value = savedModel;
-      const savedScale = localStorage.getItem('smm_active_scale');
-      if (savedScale && SCALE_PRESETS.some(p => p.key === savedScale)) activeScale = savedScale;
-      if (localStorage.getItem('smm_width')) widthInput.value = localStorage.getItem('smm_width');
-      if (localStorage.getItem('smm_height')) heightInput.value = localStorage.getItem('smm_height');
-      if (localStorage.getItem('smm_scale_label')) scaleLabel.value = localStorage.getItem('smm_scale_label');
-      if (localStorage.getItem('smm_prompt_ai_short')) promptAiShort.value = localStorage.getItem('smm_prompt_ai_short');
-    }
-
-    function activeModel(){
-      return MODEL_PRESETS[modelSelect.value] || MODEL_PRESETS.flux2_klein_1;
-    }
-
-    function loadPromptAiInstruction(){
-      promptAiInstruction.value = localStorage.getItem('smm_prompt_ai_instruction') || DEFAULT_PROMPT_AI_INSTRUCTION;
-    }
-
-    function savePromptAiInstruction(){
-      localStorage.setItem('smm_prompt_ai_instruction', promptAiInstruction.value || DEFAULT_PROMPT_AI_INSTRUCTION);
-      setPromptAiStatus('Prompt AI instruction saved.', 'good');
-    }
-
-    function setPromptAiStatus(message, type=''){
-      promptAiStatus.textContent = message || '';
-      promptAiStatus.className = `prompt-ai-status ${type}`.trim();
-    }
-
-    function showPromptAiNotes(notes){
-      const list = Array.isArray(notes) ? notes : [];
-      if (!list.length) {
-        promptAiNotes.classList.remove('show');
-        promptAiNotes.innerHTML = '';
-        return;
-      }
-      promptAiNotes.innerHTML = `<strong>Prompt AI notes</strong><ul>${list.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`;
-      promptAiNotes.classList.add('show');
-    }
-
-    async function generateSuperPrompt(createAfter=false){
-      const shortPrompt = (promptAiShort.value || promptInput.value || '').trim();
-      if (!shortPrompt) {
-        setPromptAiStatus('Write a short idea first.', 'bad');
-        return;
-      }
-
-      const buttons = [generatePromptBtn, generatePromptAndJobBtn, savePromptAiBtn];
-      buttons.forEach(btn => btn.disabled = true);
-      setPromptAiStatus('Generating super prompt with NVIDIA Prompt AI...');
-      showPromptAiNotes([]);
-
-      try {
-        localStorage.setItem('smm_prompt_ai_instruction', promptAiInstruction.value || DEFAULT_PROMPT_AI_INSTRUCTION);
-        const res = await fetch('/api/prompt-ai/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            masterInstruction: promptAiInstruction.value || DEFAULT_PROMPT_AI_INSTRUCTION,
-            shortPrompt,
-            modelKey: modelSelect.value,
-            platform: form.elements.platform.value,
-            scaleLabel: scaleLabel.value,
-            width: widthInput.value,
-            height: heightInput.value,
-            negativePrompt: negativePromptInput.value
-          })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.ok) throw new Error(data.error || `Prompt AI failed with status ${res.status}`);
-
-        promptInput.value = data.positive_prompt || promptInput.value;
-        negativePromptInput.value = data.negative_prompt || negativePromptInput.value;
-        showPromptAiNotes(data.notes || []);
-        setPromptAiStatus(`Super prompt generated with ${data.model || 'Prompt AI'}.`, 'good');
-        saveUiState();
-
-        if (createAfter) form.requestSubmit();
-      } catch (err) {
-        setPromptAiStatus(err.message, 'bad');
-        alert(err.message);
-      } finally {
-        buttons.forEach(btn => btn.disabled = false);
-      }
-    }
-
-    function updateModelUI(){
-      const model = activeModel();
-      modelHint.textContent = model.hint;
-      uploadLabel.textContent = model.maxImages === 0
-        ? 'Upload images'
-        : `Upload reference images (${model.minImages}${model.minImages === model.maxImages ? '' : '–' + model.maxImages})`;
-      if (imageInput.files.length > model.maxImages) imageInput.value = '';
-      imageInput.disabled = model.maxImages === 0;
-      imageInput.required = model.minImages > 0;
-      negativePromptWrap.style.display = model.usesNegative ? 'block' : 'none';
-
-      if (model.maxImages === 0) {
-        uploadInfo.textContent = 'This model uses prompt only · no image upload';
-        previewsEl.innerHTML = '';
-      } else {
-        uploadInfo.textContent = model.minImages === model.maxImages
-          ? `Required: exactly ${model.maxImages} image(s) · jpg/png/webp`
-          : `Required: ${model.minImages}–${model.maxImages} images · jpg/png/webp`;
-      }
-    }
-
-    function fmtDuration(ms){
-      if (!ms || ms < 0) return '--';
-      const sec = Math.round(ms / 1000);
-      const m = Math.floor(sec / 60);
-      const s = sec % 60;
-      return `${m}m ${String(s).padStart(2,'0')}s`;
-    }
-
-    function averageDurationMs(list){
-      const done = list.filter(j => j.status === 'completed' && j.workerStartedAt && (j.completedAt || j.result?.completedAt));
-      if (!done.length) return 120000;
-      const vals = done.map(j => new Date(j.completedAt || j.result.completedAt) - new Date(j.workerStartedAt)).filter(v => v > 0);
-      return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0) / vals.length) : 120000;
-    }
-
-    function computeProgress(job, avgMs){
-      if (job.status === 'completed') return 100;
-      if (job.status === 'failed') return 100;
-      if (job.status === 'queued') {
-        const queuedAhead = jobs.filter(j => j.status === 'queued' && new Date(j.createdAt) < new Date(job.createdAt)).length;
-        return Math.min(15 + queuedAhead * 4, 35);
-      }
-      if (job.status === 'processing') {
-        const start = new Date(job.workerStartedAt || job.updatedAt || job.createdAt).getTime();
-        const elapsed = Date.now() - start;
-        return Math.max(10, Math.min(95, Math.round((elapsed / avgMs) * 100)));
-      }
-      return 0;
-    }
-
-    function getEta(job, avgMs){
-      if (job.status === 'completed') return `Done in ${fmtDuration(new Date(job.completedAt || job.result?.completedAt) - new Date(job.workerStartedAt || job.createdAt))}`;
-      if (job.status === 'failed') return 'Generation failed';
-      if (job.status === 'queued') {
-        const queuedAhead = jobs.filter(j => ['queued','processing'].includes(j.status) && new Date(j.createdAt) < new Date(job.createdAt)).length;
-        return `ETA ~ ${fmtDuration((queuedAhead + 1) * avgMs)}`;
-      }
-      const start = new Date(job.workerStartedAt || job.createdAt).getTime();
-      const elapsed = Date.now() - start;
-      const remaining = Math.max(0, avgMs - elapsed);
-      return `Elapsed ${fmtDuration(elapsed)} · ETA ${fmtDuration(remaining)}`;
-    }
-
-    function setScale(key){
-      activeScale = key;
-      const preset = SCALE_PRESETS.find(x => x.key === key) || SCALE_PRESETS[2];
-      document.querySelectorAll('.ratio-option').forEach(el => el.classList.toggle('active', el.dataset.key === key));
-      scaleLabel.value = `${preset.label} (${preset.size})`;
-
-      if (preset.key === 'original') {
-        setOriginalSizeFromFirstImage();
-        return;
-      }
-
-      if (preset.width && preset.height) {
-        widthInput.value = preset.width;
-        heightInput.value = preset.height;
-      }
-      saveUiState();
-    }
-
-    function setOriginalSizeFromFirstImage(){
-      const file = imageInput.files && imageInput.files[0];
-      if (!file) {
-        // No image selected: keep the user's current/saved size instead of resetting it.
-        widthInput.value = widthInput.value || localStorage.getItem('smm_width') || 1080;
-        heightInput.value = heightInput.value || localStorage.getItem('smm_height') || 1350;
-        scaleLabel.value = `Original (${widthInput.value} × ${heightInput.value})`;
-        saveUiState();
-        return;
-      }
-      const img = new Image();
-      img.onload = () => {
-        widthInput.value = img.naturalWidth || 1080;
-        heightInput.value = img.naturalHeight || 1350;
-        scaleLabel.value = `Original (${widthInput.value} × ${heightInput.value})`;
-        saveUiState();
-        URL.revokeObjectURL(img.src);
-      };
-      img.src = URL.createObjectURL(file);
-    }
-
-    function renderScaleChips(){
-      const box = document.getElementById('scaleChips');
-      box.innerHTML = SCALE_PRESETS.map(p => `
-        <button type="button" class="ratio-option ${p.key===activeScale?'active':''}" data-key="${p.key}">
-          <span class="ratio-left">
-            <span class="ratio-icon"><span class="ratio-shape shape-${p.shape}"></span></span>
-            <span>
-              <span class="ratio-name">${p.label}</span>
-              <span class="ratio-sub">${p.size}</span>
-            </span>
-          </span>
-          <span class="ratio-check">${p.key===activeScale?'✓':''}</span>
-        </button>
-      `).join('');
-      box.querySelectorAll('.ratio-option').forEach(btn => btn.addEventListener('click', ()=> setScale(btn.dataset.key)));
-      setScale(activeScale);
-    }
-
-    function renderPreviews(){
-      const model = activeModel();
-      const files = [...imageInput.files].slice(0, Math.max(model.maxImages, 0));
-      if (model.maxImages === 0) {
-        uploadInfo.textContent = 'This model uses prompt only · no image upload';
-      } else if (imageInput.files.length) {
-        uploadInfo.textContent = `${imageInput.files.length} image(s) selected`;
-        if (imageInput.files.length < model.minImages || imageInput.files.length > model.maxImages) {
-          uploadInfo.textContent += ` · ${model.label} needs ${model.minImages === model.maxImages ? 'exactly ' + model.maxImages : model.minImages + '–' + model.maxImages} image(s)`;
-        }
-      } else {
-        uploadInfo.textContent = model.minImages === model.maxImages
-          ? `Required: exactly ${model.maxImages} image(s) · jpg/png/webp`
-          : `Required: ${model.minImages}–${model.maxImages} images · jpg/png/webp`;
-      }
-      previewsEl.innerHTML = '';
-      files.forEach(file => {
-        const img = document.createElement('img');
-        img.className = 'preview-item';
-        img.alt = file.name;
-        img.src = URL.createObjectURL(file);
-        img.addEventListener('click', ()=> openModal(img.src));
-        previewsEl.appendChild(img);
-      });
-      if (activeScale === 'original') setOriginalSizeFromFirstImage();
-    }
-
-    function openModal(src){
-      modalImage.src = src;
-      modal.classList.add('open');
-    }
-
-    function closeModal(){ modal.classList.remove('open'); modalImage.src = ''; }
-
-    async function createJob(e){
-      e.preventDefault();
-      const model = activeModel();
-      const count = imageInput.files.length;
-      if (count < model.minImages || count > model.maxImages) {
-        const needed = model.minImages === model.maxImages ? `exactly ${model.maxImages}` : `${model.minImages}–${model.maxImages}`;
-        return alert(`${model.label} needs ${needed} image(s).`);
-      }
-      createBtn.disabled = true;
-      createBtn.textContent = 'Creating...';
-      const fd = new FormData(form);
-      const res = await fetch('/api/jobs', { method:'POST', body:fd });
-      if (!res.ok) {
-        createBtn.disabled = false;
-        createBtn.textContent = 'Create Job';
-        return alert(await res.text());
-      }
-      // Keep selected model, scale, width and height after creating a job.
-      // Only clear uploaded files so the user can create another job with the same setup.
-      imageInput.value = '';
-      saveUiState();
-      updateModelUI();
-      renderScaleChips();
-      renderPreviews();
-      createBtn.disabled = false;
-      createBtn.textContent = 'Create Job';
-      await loadJobs();
-    }
-
-    async function deleteJob(id){
-      if (!confirm('Delete this job and its history?')) return;
-      await fetch(`/api/jobs/${id}`, { method:'DELETE' });
-      await loadJobs();
-    }
-
-    async function clearHistory(mode){
-      const msg = mode === 'all' ? 'Delete all jobs and history?' : 'Delete finished jobs from history?';
-      if (!confirm(msg)) return;
-      await fetch('/api/jobs/clear', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ mode })
-      });
-      await loadJobs();
-    }
-
-    function renderStats(){
-      const total = jobs.length;
-      const queued = jobs.filter(j => j.status === 'queued').length;
-      const processing = jobs.filter(j => j.status === 'processing').length;
-      const completed = jobs.filter(j => j.status === 'completed').length;
-      const avg = averageDurationMs(jobs);
-      statsEl.innerHTML = [
-        {n: total, l:'Total Jobs'},
-        {n: queued, l:'Queued'},
-        {n: processing, l:'Processing'},
-        {n: completed, l:'Completed'}
-      ].map(s => `<div class="stat"><div class="n">${s.n}</div><div class="l">${s.l}</div></div>`).join('');
-      document.getElementById('jobCountPill').textContent = `${total} job${total===1?'':'s'}`;
-      document.getElementById('avgTimePill').textContent = `Avg time: ${fmtDuration(avg)}`;
-    }
-
-    function jobCard(job){
-      const avgMs = averageDurationMs(jobs);
-      const progress = computeProgress(job, avgMs);
-      const eta = getEta(job, avgMs);
-      const imageThumbs = (job.images || []).map(img => `<img src="${img.url}" alt="${img.originalName}" data-preview="${img.url}" />`).join('');
-      const statusClass = job.status || 'queued';
-      return `
-        <div class="job">
-          <div class="job-head">
-            <div>
-              <div class="status ${statusClass}"><span class="dot"></span>${job.status}</div>
-              <div style="margin-top:10px;font-weight:800">${job.scaleLabel || `${job.width} × ${job.height}`}</div>
-              <div class="job-meta" style="margin-top:8px">
-                <span>${job.imageCount} image(s)</span>
-                <span>${job.modelLabel || job.modelKey || 'Flux2 Klein 4B — 1 Image'}</span>
-                <span>${job.platform || 'general'}</span>
-                <span>${new Date(job.createdAt).toLocaleString()}</span>
-                <span>ID: ${job.id.slice(0, 8)}…</span>
-              </div>
-            </div>
-            <div class="actions">
-              <button class="secondary" onclick="deleteJob('${job.id}')">Delete</button>
-            </div>
-          </div>
-
-          <div class="progress-wrap">
-            <div class="tiny">${job.progress || 'Waiting'} · ${eta}</div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
-          </div>
-
-          <div class="job-grid">
-            <div>
-              <div class="full-text truncate">${escapeHtml(job.prompt || '')}</div>
-              ${job.error ? `<div class="error" style="margin-top:12px">${escapeHtml(job.error)}</div>` : ''}
-              <div style="margin-top:12px">
-                <div class="tiny" style="margin-bottom:8px">Reference images</div>
-                <div class="thumbs">${imageThumbs || '<span class="muted">No images</span>'}</div>
-              </div>
-            </div>
-            <div>
-              <div class="result-card">
-                <div class="tiny" style="margin-bottom:8px">Generated result</div>
-                ${job.result?.url ? `<img src="${job.result.url}" alt="Result" data-preview="${job.result.url}" />
-                <div class="result-actions">
-                  <a class="secondary" href="${job.result.url}" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;padding:12px 14px">Open</a>
-                  <a class="primary" href="${job.result.url}" download style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;padding:12px 14px">Download</a>
-                </div>` : `<div class="empty">No result yet</div>`}
-              </div>
-            </div>
+    <aside class="column right-col">
+      <section class="panel right-ai">
+        <div class="ai-hero"><div class="ai-title"><div class="ai-orb">✦</div><div>AI Prompt Improver</div></div><div class="ai-status">Turn a short idea into a polished commercial prompt, while preserving product identity and important visual details.</div></div>
+        <div class="panel-body">
+          <div class="ai-disabled" id="aiDisabled"><strong>Not needed for Face Swap.</strong><br />The prompt and workflow logic are already configured inside the Face Swap API workflow.</div>
+          <div class="ai-controls" id="aiControls">
+            <div class="field"><label for="promptAiShort">Quick idea</label><textarea id="promptAiShort" placeholder="Example: premium bottle campaign at Baku seaside, golden-hour commercial lighting"></textarea></div>
+            <div class="field"><label for="promptAiInstruction">Saved AI instruction</label><textarea id="promptAiInstruction" style="min-height:145px"></textarea><div class="hint">Saved in this browser and reused for every prompt request.</div></div>
+            <div class="btn-row"><button class="btn" id="savePromptAiBtn" type="button">Save instruction</button><button class="btn primary" id="generatePromptBtn" type="button">Improve prompt</button><button class="btn" id="generatePromptAndJobBtn" type="button">Improve + Generate</button></div>
+            <div class="ai-message" id="promptAiStatus"></div><div class="ai-notes" id="promptAiNotes"></div>
           </div>
         </div>
-      `;
-    }
+      </section>
+      <section class="panel"><div class="panel-head"><h3>Queue Overview</h3></div><div class="panel-body"><div class="stat-grid" id="stats"></div></div></section>
+    </aside>
+  </main>
+</div>
 
-    function escapeHtml(str){
-      return String(str)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
+<div class="modal" id="imageModal"><div class="modal-card"><button class="modal-close" id="closeModal" type="button">✕</button><img id="modalImage" alt="Preview" /></div></div>
 
-    async function loadJobs(){
-      const res = await fetch('/api/jobs');
-      const data = await res.json();
-      jobs = data.jobs || [];
-      renderStats();
-      jobsEl.innerHTML = jobs.length ? jobs.map(jobCard).join('') : `<div class="empty">No jobs yet. Create your first generation.</div>`;
-      document.querySelectorAll('[data-preview]').forEach(el => el.addEventListener('click', ()=> openModal(el.dataset.preview)));
-    }
+<script>
+const FALLBACK_MODELS=[
+  {key:'face_swap',label:'Face Swap',mode:'face_swap',minImages:2,maxImages:2,promptEnabled:false,outputSizing:'model-image',description:'Fixed two-image face swap workflow. No prompt required.',imageSlots:[{label:'1. Reference',description:'Face and hair reference'},{label:'2. Your model',description:'Body and composition to keep'}]},
+  {key:'flux2_klein_1',label:'Flux2 Klein 4B — 1 Image',mode:'image',minImages:1,maxImages:1,promptEnabled:true,description:'Single-reference FLUX edit.'},
+  {key:'flux2_klein_2',label:'Flux2 Klein 4B — 2 Images',mode:'image',minImages:2,maxImages:2,promptEnabled:true,description:'Two-reference FLUX edit.'},
+  {key:'flux2_klein_3',label:'Flux2 Klein 4B — 3 Images',mode:'image',minImages:3,maxImages:3,promptEnabled:true,description:'Three-reference FLUX edit.'},
+  {key:'flux2_klein_4',label:'Flux2 Klein 4B — 4 Images',mode:'image',minImages:4,maxImages:4,promptEnabled:true,description:'Four-reference FLUX edit.'},
+  {key:'flux2_klein_5',label:'Flux2 Klein 4B — 5 Images',mode:'image',minImages:5,maxImages:5,promptEnabled:true,description:'Five-reference FLUX edit.'},
+  {key:'z_image_base_img2img_2',label:'Z-Image Base — 2 Image Img2Img',mode:'img2img',minImages:2,maxImages:2,promptEnabled:true,description:'Base image plus detail reference.'},
+  {key:'z_image_base_t2i',label:'Z-Image Base — Text to Image',mode:'text2image',minImages:0,maxImages:0,promptEnabled:true,description:'Prompt-only image generation.'}
+];
+const DEFAULT_AI_INSTRUCTION=`You are a professional AI image prompt engineer for SMM advertising. Create accurate, premium and visually attractive prompts. Preserve product identity, bottle shape, labels, logos, packaging, colours and important details. Improve composition, lighting, realism and commercial appeal. Keep the output useful and focused.`;
+const SCALES=[
+  {key:'1-1',label:'1:1',name:'Square',w:1080,h:1080},
+  {key:'4-5',label:'4:5',name:'Portrait',w:1080,h:1350},
+  {key:'9-16',label:'9:16',name:'Story',w:1080,h:1920},
+  {key:'16-9',label:'16:9',name:'Wide',w:1920,h:1080}
+];
+let models=[...FALLBACK_MODELS],jobs=[],selectedFiles=[],activeScale=localStorage.getItem('smm_active_scale')||'4-5';
+const $=id=>document.getElementById(id);
+const form=$('jobForm'),modelSelect=$('modelKey'),uploadGrid=$('uploadGrid'),workspace=$('workspace'),jobsEl=$('jobs');
+const promptInput=$('prompt'),negativePromptInput=$('negativePrompt'),widthInput=$('widthInput'),heightInput=$('heightInput');
+const modal=$('imageModal'),modalImage=$('modalImage');
 
-    form.addEventListener('submit', createJob);
-    savePromptAiBtn.addEventListener('click', savePromptAiInstruction);
-    generatePromptBtn.addEventListener('click', () => generateSuperPrompt(false));
-    generatePromptAndJobBtn.addEventListener('click', () => generateSuperPrompt(true));
-    promptAiInstruction.addEventListener('input', () => localStorage.setItem('smm_prompt_ai_instruction', promptAiInstruction.value || DEFAULT_PROMPT_AI_INSTRUCTION));
-    promptAiShort.addEventListener('input', saveUiState);
-    imageInput.addEventListener('change', renderPreviews);
-    document.getElementById('resetBtn').addEventListener('click', ()=> { form.reset(); activeScale='4-5'; modelSelect.value='flux2_klein_1'; updateModelUI(); renderScaleChips(); renderPreviews(); saveUiState(); });
-    modelSelect.addEventListener('change', ()=> { saveUiState(); updateModelUI(); renderPreviews(); });
-    document.getElementById('refreshBtn').addEventListener('click', loadJobs);
-    document.getElementById('clearFinishedBtn').addEventListener('click', ()=> clearHistory('finished'));
-    document.getElementById('clearAllBtn').addEventListener('click', ()=> clearHistory('all'));
-    document.getElementById('closeModal').addEventListener('click', closeModal);
-    modal.addEventListener('click', (e)=> { if (e.target === modal) closeModal(); });
-    document.addEventListener('keydown', (e)=> { if (e.key === 'Escape') closeModal(); });
+function activeModel(){return models.find(m=>m.key===modelSelect.value)||models[0]||FALLBACK_MODELS[0]}
+function escapeHtml(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
+function formatTime(ms){if(!ms||ms<1)return'--';const s=Math.round(ms/1000);return s<60?`${s}s`:`${Math.floor(s/60)}m ${s%60}s`}
+function averageDuration(){const values=jobs.filter(j=>j.status==='completed'&&j.workerStartedAt&&j.completedAt).map(j=>new Date(j.completedAt)-new Date(j.workerStartedAt)).filter(v=>v>0);return values.length?values.reduce((a,b)=>a+b,0)/values.length:0}
+function progressOf(job){if(job.status==='completed')return 100;if(job.status==='failed')return 100;if(job.status==='queued')return 8;const avg=averageDuration()||90000;const elapsed=Date.now()-new Date(job.workerStartedAt||job.updatedAt||job.createdAt).getTime();return Math.min(94,Math.max(15,Math.round(elapsed/avg*100)))}
+function openModal(src){if(!src)return;modalImage.src=src;modal.classList.add('open')}
+function closeModal(){modal.classList.remove('open');modalImage.src=''}
 
-    loadPromptAiInstruction();
-    applyTheme(localStorage.getItem('smm_theme') || 'dark');
-    restoreUiState();
-    themeToggle.addEventListener('click', ()=> applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
-    widthInput.addEventListener('input', saveUiState);
-    heightInput.addEventListener('input', saveUiState);
+async function loadModels(){
+  try{const r=await fetch('/api/models');if(r.ok){const d=await r.json();if(Array.isArray(d.models)&&d.models.length)models=d.models}}
+  catch{}
+  models.sort((a,b)=>a.key==='face_swap'?-1:b.key==='face_swap'?1:0);
+  renderModelOptions();
+}
+function renderModelOptions(){
+  const saved=localStorage.getItem('smm_model_key');
+  modelSelect.innerHTML=models.filter(m=>m.key!=='flux2_klein').map(m=>`<option value="${m.key}">${escapeHtml(m.label)}</option>`).join('');
+  modelSelect.value=models.some(m=>m.key===saved)?saved:(models.some(m=>m.key==='face_swap')?'face_swap':models[0].key);
+  updateModelUI();
+}
+function modelSlots(model){
+  if(Array.isArray(model.imageSlots)&&model.imageSlots.length)return model.imageSlots;
+  return Array.from({length:model.maxImages||0},(_,i)=>({label:`Image ${i+1}`,description:i===0?'Main image / composition':'Additional reference'}));
+}
+function renderUploadSlots(){
+  const model=activeModel(),slots=modelSlots(model);selectedFiles=selectedFiles.slice(0,slots.length);
+  $('uploadSection').classList.toggle('hidden',slots.length===0);
+  uploadGrid.classList.toggle('one',slots.length===1);
+  uploadGrid.innerHTML=slots.map((slot,i)=>{
+    const file=selectedFiles[i],url=file?URL.createObjectURL(file):'';
+    return `<div class="upload-slot ${file?'has-file':''}" data-slot="${i}" tabindex="0">
+      <span class="upload-index">${i+1}</span>${file?`<img src="${url}" alt="${escapeHtml(file.name)}"><span class="shade"></span>`:''}
+      <button class="remove-file" type="button" data-remove="${i}">✕</button>
+      <div class="upload-content"><div class="upload-icon">▧</div><div class="upload-title">${escapeHtml(slot.label||`Image ${i+1}`)}</div><div class="upload-sub">${file?escapeHtml(file.name):escapeHtml(slot.description||'Click or drop an image')}</div></div>
+      <input type="file" accept="image/*" data-file="${i}" hidden>
+    </div>`
+  }).join('');
+  $('uploadHint').textContent=model.key==='face_swap'?'1. Reference = face/hair source · 2. Your model = body/composition to keep':slots.length?`Exactly ${slots.length} image${slots.length===1?'':'s'} required · JPG, PNG or WebP`:'';
+  uploadGrid.querySelectorAll('.upload-slot').forEach(slot=>{
+    const i=Number(slot.dataset.slot),input=slot.querySelector('[data-file]');
+    slot.addEventListener('click',e=>{if(!e.target.closest('[data-remove]'))input.click()});
+    slot.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')input.click()});
+    input.addEventListener('change',()=>{if(input.files[0])setSlotFile(i,input.files[0])});
+    ['dragenter','dragover'].forEach(name=>slot.addEventListener(name,e=>{e.preventDefault();slot.classList.add('drag')}));
+    ['dragleave','drop'].forEach(name=>slot.addEventListener(name,e=>{e.preventDefault();slot.classList.remove('drag')}));
+    slot.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))setSlotFile(i,f)});
+  });
+  uploadGrid.querySelectorAll('[data-remove]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();selectedFiles[Number(btn.dataset.remove)]=null;renderUploadSlots()}));
+}
+function setSlotFile(i,file){selectedFiles[i]=file;if(activeModel().key==='face_swap'&&i===1)readImageSize(file);renderUploadSlots()}
+function readImageSize(file){const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{widthInput.value=img.naturalWidth;heightInput.value=img.naturalHeight;URL.revokeObjectURL(url)};img.src=url}
+function renderRatios(){
+  $('ratioGrid').innerHTML=SCALES.map(s=>`<button type="button" class="ratio-btn ${s.key===activeScale?'active':''}" data-scale="${s.key}">${s.label}<br><span style="font-size:9px;font-weight:700">${s.name}</span></button>`).join('');
+  $('ratioGrid').querySelectorAll('[data-scale]').forEach(b=>b.addEventListener('click',()=>setScale(b.dataset.scale)));
+  setScale(activeScale,false);
+}
+function setScale(key,rerender=true){const s=SCALES.find(x=>x.key===key)||SCALES[1];activeScale=s.key;widthInput.value=s.w;heightInput.value=s.h;$('scaleLabel').value=`${s.label} ${s.name}`;localStorage.setItem('smm_active_scale',s.key);if(rerender)renderRatios()}
+function updateModelUI(){
+  const m=activeModel();localStorage.setItem('smm_model_key',m.key);$('modelHint').textContent=m.description||'';$('modelModePill').textContent=m.key==='face_swap'?'Face Swap':m.mode==='text2image'?'Text to Image':'Image';
+  const promptEnabled=m.promptEnabled!==false;
+  $('promptWrap').classList.toggle('hidden',!promptEnabled);$('fixedWorkflow').classList.toggle('show',!promptEnabled);$('negativePromptWrap').classList.toggle('hidden',m.key!=='z_image_base_t2i');
+  $('sizeSection').classList.toggle('hidden',m.outputSizing==='model-image');$('workflowSizeInfo').classList.toggle('hidden',m.outputSizing!=='model-image');
+  $('aiControls').classList.toggle('hidden',!promptEnabled);$('aiDisabled').classList.toggle('show',!promptEnabled);selectedFiles=[];renderUploadSlots();saveUiState();
+}
+function saveUiState(){localStorage.setItem('smm_prompt',promptInput.value);localStorage.setItem('smm_negative_prompt',negativePromptInput.value);localStorage.setItem('smm_platform',$('platform').value);localStorage.setItem('smm_width',widthInput.value);localStorage.setItem('smm_height',heightInput.value);localStorage.setItem('smm_quick_prompt',$('promptAiShort').value)}
+function restoreUiState(){promptInput.value=localStorage.getItem('smm_prompt')||promptInput.value;negativePromptInput.value=localStorage.getItem('smm_negative_prompt')||negativePromptInput.value;$('platform').value=localStorage.getItem('smm_platform')||'instagram';$('promptAiShort').value=localStorage.getItem('smm_quick_prompt')||'';$('promptAiInstruction').value=localStorage.getItem('smm_prompt_ai_instruction')||DEFAULT_AI_INSTRUCTION}
 
-    updateModelUI();
-    renderScaleChips();
-    renderPreviews();
-    loadJobs();
-    setInterval(loadJobs, 4000);
-  </script>
+async function createJob(e){if(e)e.preventDefault();const m=activeModel(),files=selectedFiles.filter(Boolean);if(files.length!==m.maxImages)return alert(`${m.label} needs exactly ${m.maxImages} image${m.maxImages===1?'':'s'}.`);const fd=new FormData();fd.append('modelKey',m.key);files.forEach(f=>fd.append('images',f,f.name));fd.append('prompt',m.promptEnabled===false?'':promptInput.value);fd.append('negativePrompt',negativePromptInput.value);fd.append('platform',$('platform').value);fd.append('scaleLabel',m.outputSizing==='model-image'?'Follows Your Model':$('scaleLabel').value);fd.append('width',widthInput.value);fd.append('height',heightInput.value);fd.append('blendFactor',$('blendFactor').value);$('createBtn').disabled=true;$('createBtn').textContent='Creating job…';try{const r=await fetch('/api/jobs',{method:'POST',body:fd});if(!r.ok)throw new Error(await r.text());selectedFiles=[];renderUploadSlots();saveUiState();await loadJobs()}catch(err){alert(err.message)}finally{$('createBtn').disabled=false;$('createBtn').textContent='Generate'}}
+async function deleteJob(id){if(!confirm('Delete this job and its files?'))return;await fetch(`/api/jobs/${id}`,{method:'DELETE'});loadJobs()}
+async function clearJobs(mode){if(!confirm(mode==='all'?'Clear all job history?':'Clear finished jobs?'))return;await fetch('/api/jobs/clear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode})});loadJobs()}
+
+function renderWorkspace(){
+  const latest=[...jobs].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))[0];
+  if(!latest){workspace.innerHTML=`<div class="empty-state"><div class="empty-icon">▧</div><h3>No generations yet</h3><p>Choose a workflow on the left, add your images and start a job. Progress and final results will appear here.</p></div>`;return}
+  const p=progressOf(latest),result=latest.result?.url,input=latest.images?.[latest.modelKey==='face_swap'?1:0]?.url;
+  const media=result?`<img src="${result}" alt="Generated result" data-preview="${result}">`:latest.status==='failed'?`<div class="stage-placeholder"><div style="font-size:32px;color:var(--red);margin-bottom:12px">!</div><strong>Generation failed</strong><p>${escapeHtml(latest.error||'Unknown error')}</p></div>`:`<div class="stage-placeholder">${input?`<img src="${input}" alt="Input" style="max-height:360px;opacity:.32;filter:saturate(.65)">`:''}<div style="position:absolute;inset:0;display:grid;place-items:center"><div><div class="loader"></div><strong>${latest.status==='queued'?'Waiting in queue':'Generating with ComfyUI'}</strong><div class="hint">${escapeHtml(latest.progress||'Working…')}</div></div></div></div>`;
+  workspace.innerHTML=`<div class="active-stage"><div class="stage-image">${media}</div><div class="active-meta"><div class="active-meta-top"><div><strong>${escapeHtml(latest.modelLabel||latest.modelKey)}</strong><div class="hint">${escapeHtml(latest.scaleLabel||`${latest.width} × ${latest.height}`)}</div></div><span class="status ${latest.status}">${escapeHtml(latest.status)}</span></div><div class="progress-copy"><span>${escapeHtml(latest.progress||latest.status)}</span><span>${p}%</span></div><div class="progress-track"><div class="progress-fill" style="width:${p}%"></div></div>${result?`<div class="btn-row" style="margin-top:12px"><a class="btn small" href="${result}" target="_blank" style="text-decoration:none">Open</a><a class="btn small primary" href="${result}" download style="text-decoration:none">Download</a></div>`:''}</div></div>`;
+  workspace.querySelectorAll('[data-preview]').forEach(x=>x.addEventListener('click',()=>openModal(x.dataset.preview)));
+}
+function renderJobs(){
+  const sorted=[...jobs].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  jobsEl.innerHTML=sorted.length?sorted.map(j=>{const thumb=j.result?.url||j.images?.[j.modelKey==='face_swap'?1:0]?.url||'';return `<div class="job-row"><img class="job-thumb" src="${thumb||'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22%3E%3Crect width=%2248%22 height=%2248%22 fill=%22%2319202a%22/%3E%3C/svg%3E'}" alt=""><div><div class="job-title">${escapeHtml(j.modelLabel||j.modelKey)}</div><div class="job-sub"><span class="status ${j.status}">${escapeHtml(j.status)}</span> · ${new Date(j.createdAt).toLocaleString()} · ${escapeHtml(j.progress||'')}</div></div><div class="job-actions btn-row">${j.result?.url?`<button class="btn small" data-preview="${j.result.url}">View</button>`:''}<button class="btn small danger" data-delete="${j.id}">Delete</button></div></div>`}).join(''):`<div class="hint" style="padding:18px;text-align:center">No job history yet.</div>`;
+  jobsEl.querySelectorAll('[data-preview]').forEach(x=>x.addEventListener('click',()=>openModal(x.dataset.preview)));jobsEl.querySelectorAll('[data-delete]').forEach(x=>x.addEventListener('click',()=>deleteJob(x.dataset.delete)));
+}
+function renderStats(){const q=jobs.filter(j=>j.status==='queued').length,p=jobs.filter(j=>j.status==='processing').length,c=jobs.filter(j=>j.status==='completed').length;$('stats').innerHTML=[['Queued',q],['Active',p],['Done',c]].map(([l,n])=>`<div class="stat"><strong>${n}</strong><span>${l}</span></div>`).join('');$('jobCountPill').textContent=`${jobs.length} job${jobs.length===1?'':'s'}`;$('avgTimePill').textContent=`Avg ${formatTime(averageDuration())}`}
+async function loadJobs(){try{const r=await fetch('/api/jobs');if(!r.ok)throw new Error('Server unavailable');const d=await r.json();jobs=d.jobs||[];$('connectionText').textContent='Connected';renderStats();renderWorkspace();renderJobs()}catch{$('connectionText').textContent='Offline'}}
+
+function setAiMessage(msg,type=''){$('promptAiStatus').textContent=msg;$('promptAiStatus').className=`ai-message ${type}`}
+function showAiNotes(notes){const list=Array.isArray(notes)?notes:[];$('promptAiNotes').classList.toggle('show',list.length>0);$('promptAiNotes').innerHTML=list.length?`<strong>What AI improved</strong><ul>${list.map(n=>`<li>${escapeHtml(n)}</li>`).join('')}</ul>`:''}
+async function generateSuperPrompt(createAfter=false){const m=activeModel();if(m.promptEnabled===false)return;const idea=($('promptAiShort').value||promptInput.value).trim();if(!idea)return setAiMessage('Write a quick idea first.','bad');const buttons=[$('generatePromptBtn'),$('generatePromptAndJobBtn'),$('savePromptAiBtn')];buttons.forEach(b=>b.disabled=true);setAiMessage('Improving prompt…');try{const r=await fetch('/api/prompt-ai/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({masterInstruction:$('promptAiInstruction').value,shortPrompt:idea,modelKey:m.key,platform:$('platform').value,scaleLabel:$('scaleLabel').value,width:widthInput.value,height:heightInput.value,negativePrompt:negativePromptInput.value})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Prompt AI failed');promptInput.value=d.positive_prompt||promptInput.value;if(d.negative_prompt)negativePromptInput.value=d.negative_prompt;showAiNotes(d.notes);saveUiState();setAiMessage(`Prompt improved with ${d.model||'AI'}.`,'good');if(createAfter)await createJob()}catch(err){setAiMessage(err.message,'bad')}finally{buttons.forEach(b=>b.disabled=false)}}
+
+form.addEventListener('submit',createJob);modelSelect.addEventListener('change',updateModelUI);$('refreshBtn').addEventListener('click',loadJobs);$('clearFinishedBtn').addEventListener('click',()=>clearJobs('finished'));$('clearAllBtn').addEventListener('click',()=>clearJobs('all'));$('resetBtn').addEventListener('click',()=>{selectedFiles=[];promptInput.value='Create a premium commercial social media advertising image. Keep product identity clean and professional.';activeScale='4-5';renderRatios();renderUploadSlots();saveUiState()});$('savePromptAiBtn').addEventListener('click',()=>{localStorage.setItem('smm_prompt_ai_instruction',$('promptAiInstruction').value||DEFAULT_AI_INSTRUCTION);setAiMessage('Instruction saved.','good')});$('generatePromptBtn').addEventListener('click',()=>generateSuperPrompt(false));$('generatePromptAndJobBtn').addEventListener('click',()=>generateSuperPrompt(true));[$('promptAiShort'),$('promptAiInstruction'),promptInput,negativePromptInput,widthInput,heightInput,$('platform')].forEach(el=>el.addEventListener('input',saveUiState));$('closeModal').addEventListener('click',closeModal);modal.addEventListener('click',e=>{if(e.target===modal)closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
+(async function init(){restoreUiState();renderRatios();await loadModels();await loadJobs();setInterval(loadJobs,4000)})();
+</script>
 </body>
 </html>

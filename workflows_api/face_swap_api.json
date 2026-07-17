@@ -1,0 +1,393 @@
+{
+  "12": {
+    "inputs": {
+      "image": "ceff79ecea5e054c41df495c7d8331f7.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "🖼️ Reference 1 — Body"
+    }
+  },
+  "13": {
+    "inputs": {
+      "image": "Screenshot_2025-03-21_135731.v1.webp"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "🖼️ Reference 2 — Face"
+    }
+  },
+  "30": {
+    "inputs": {
+      "llmtoolkit_comparer": {
+        "images": [
+          {
+            "name": "A",
+            "selected": true,
+            "url": "/api/view?filename=llmtoolkit.compare._temp_sxqso_00015_.png&type=temp&subfolder=&rand=0.738203713723295"
+          },
+          {
+            "name": "B",
+            "selected": true,
+            "url": "/api/view?filename=llmtoolkit.compare._temp_sxqso_00016_.png&type=temp&subfolder=&rand=0.19559238575313054"
+          }
+        ]
+      },
+      "image_a": [
+        "164",
+        0
+      ],
+      "image_b": [
+        "179",
+        0
+      ]
+    },
+    "class_type": "ImageComparer",
+    "_meta": {
+      "title": "🔍 Before / After"
+    }
+  },
+  "115": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "176",
+        0
+      ],
+      "positive": [
+        "167",
+        0
+      ],
+      "negative": [
+        "166",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "⚙️ CFG Guider"
+    }
+  },
+  "116": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 4,
+      "denoise": 1,
+      "model": [
+        "176",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "⚙️ Scheduler"
+    }
+  },
+  "117": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "⚙️ Sampler: Euler"
+    }
+  },
+  "163": {
+    "inputs": {
+      "image": [
+        "180",
+        0
+      ]
+    },
+    "class_type": "easy imageSize",
+    "_meta": {
+      "title": "📐 Image Size"
+    }
+  },
+  "164": {
+    "inputs": {
+      "samples": [
+        "165",
+        0
+      ],
+      "vae": [
+        "177",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "🖼️ FLUX VAE Decode"
+    }
+  },
+  "165": {
+    "inputs": {
+      "noise": [
+        "183",
+        0
+      ],
+      "guider": [
+        "115",
+        0
+      ],
+      "sampler": [
+        "117",
+        0
+      ],
+      "sigmas": [
+        "116",
+        0
+      ],
+      "latent_image": [
+        "170",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "⚡ FLUX Advanced Sampler"
+    }
+  },
+  "166": {
+    "inputs": {
+      "conditioning": [
+        "174",
+        0
+      ],
+      "latent": [
+        "168",
+        0
+      ]
+    },
+    "class_type": "KiaraReferenceLatent",
+    "_meta": {
+      "title": "🔗 Ref Latent — Ref2 → Negative"
+    }
+  },
+  "167": {
+    "inputs": {
+      "conditioning": [
+        "172",
+        0
+      ],
+      "latent": [
+        "168",
+        0
+      ]
+    },
+    "class_type": "KiaraReferenceLatent",
+    "_meta": {
+      "title": "🔗 Ref Latent — Ref2 → Positive"
+    }
+  },
+  "168": {
+    "inputs": {
+      "pixels": [
+        "180",
+        0
+      ],
+      "vae": [
+        "177",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "🔄 VAE Encode Ref2"
+    }
+  },
+  "169": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "164",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "💾 Save — Stage II"
+    }
+  },
+  "170": {
+    "inputs": {
+      "width": [
+        "175",
+        0
+      ],
+      "height": [
+        "175",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "📦 Empty FLUX Latent"
+    }
+  },
+  "171": {
+    "inputs": {
+      "conditioning": [
+        "182",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "⭕ Conditioning Zero Out"
+    }
+  },
+  "172": {
+    "inputs": {
+      "conditioning": [
+        "182",
+        0
+      ],
+      "latent": [
+        "173",
+        0
+      ]
+    },
+    "class_type": "KiaraReferenceLatent",
+    "_meta": {
+      "title": "🔗 Ref Latent — Ref1 + Text"
+    }
+  },
+  "173": {
+    "inputs": {
+      "pixels": [
+        "179",
+        0
+      ],
+      "vae": [
+        "177",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "🔄 VAE Encode Ref1"
+    }
+  },
+  "174": {
+    "inputs": {
+      "conditioning": [
+        "171",
+        0
+      ],
+      "latent": [
+        "173",
+        0
+      ]
+    },
+    "class_type": "KiaraReferenceLatent",
+    "_meta": {
+      "title": "🔗 Ref Latent — Ref1 + Zero"
+    }
+  },
+  "175": {
+    "inputs": {
+      "image": [
+        "179",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "📐 Get Image Size"
+    }
+  },
+  "176": {
+    "inputs": {
+      "unet_name": "flux-2-klein-4b.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "🧠 FLUX UNET (Klein 4B)"
+    }
+  },
+  "177": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "🎨 FLUX VAE"
+    }
+  },
+  "178": {
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "📝 FLUX CLIP Loader"
+    }
+  },
+  "179": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "megapixels": 1,
+      "resolution_steps": 1,
+      "image": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "📏 Scale Ref 1"
+    }
+  },
+  "180": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "megapixels": 1,
+      "resolution_steps": 1,
+      "image": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "📏 Scale Ref 2"
+    }
+  },
+  "181": {
+    "inputs": {
+      "resolution": "9:16 Tall 896x1536",
+      "speed": "Fast 4 steps"
+    },
+    "class_type": "ControlPanelFlux",
+    "_meta": {
+      "title": "🎛️ Stage II — Control Panel"
+    }
+  },
+  "182": {
+    "inputs": {
+      "text": "Swap the face to the face from reference image 2 and also change the hair as well",
+      "clip": [
+        "178",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "✏️ Soul Swap Prompt"
+    }
+  },
+  "183": {
+    "inputs": {
+      "noise_seed": 742805671140746
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "🎲 Random Noise"
+    }
+  }
+}

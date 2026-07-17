@@ -107,6 +107,21 @@ const MODEL_CONFIGS = {
     description: 'Automatically chooses the Flux2 API workflow by uploaded image count.'
   },
 
+  face_swap: {
+    key: 'face_swap',
+    label: 'Face Swap',
+    mode: 'face_swap',
+    minImages: 2,
+    maxImages: 2,
+    promptEnabled: false,
+    outputSizing: 'model-image',
+    imageSlots: [
+      { key: 'reference', label: '1. Reference', description: 'Upload the face and hair reference.' },
+      { key: 'model', label: '2. Your model', description: 'Upload the body/composition image to keep.' }
+    ],
+    description: 'Fixed two-image face swap workflow. No prompt is required; output follows the model image composition.'
+  },
+
   z_image_base_img2img_2: {
     key: 'z_image_base_img2img_2',
     label: 'Z-Image Base 2-Image Img2Img',
@@ -130,8 +145,8 @@ function getModelConfig(modelKey) {
 }
 
 function publicModels() {
-  return Object.values(MODEL_CONFIGS).map(({ key, label, mode, minImages, maxImages, description }) => ({
-    key, label, mode, minImages, maxImages, description
+  return Object.values(MODEL_CONFIGS).map(({ key, label, mode, minImages, maxImages, description, promptEnabled = true, imageSlots = null, outputSizing = 'selected' }) => ({
+    key, label, mode, minImages, maxImages, description, promptEnabled, imageSlots, outputSizing
   }));
 }
 
@@ -213,6 +228,9 @@ function truncateText(value, maxChars) {
 
 function modelPromptRules(model) {
   if (!model) return 'General image generation prompt.';
+  if (model.key === 'face_swap') {
+    return 'Face Swap uses a fixed workflow prompt and does not accept user prompt text.';
+  }
   if (model.key === 'z_image_base_t2i') {
     return 'Z-Image Base Text-to-Image: create a descriptive positive prompt and a useful negative prompt. No input image is used.';
   }
@@ -351,7 +369,7 @@ app.post('/api/jobs', upload.array('images', MAX_IMAGES), (req, res) => {
     status: 'queued',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    prompt: req.body.prompt || 'Create a premium social media advertising image.',
+    prompt: model.promptEnabled === false ? '' : (req.body.prompt || 'Create a premium social media advertising image.'),
     negativePrompt: req.body.negativePrompt || '',
     title: req.body.title || '',
     description: req.body.description || '',
@@ -360,6 +378,9 @@ app.post('/api/jobs', upload.array('images', MAX_IMAGES), (req, res) => {
     modelKey: model.key,
     modelLabel: model.label,
     modelMode: model.mode,
+    promptEnabled: model.promptEnabled !== false,
+    outputSizing: model.outputSizing || 'selected',
+    imageSlots: model.imageSlots || null,
     scaleLabel: req.body.scaleLabel || '',
     width,
     height,
